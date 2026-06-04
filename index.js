@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v1.9
+ * 🐶콩고물 토오크 v2.0
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -882,51 +882,71 @@ function sendToMainChat(text) {
 }
 
 function cleanupMisplacedLauncher() {
-  const btn = document.getElementById('tua-chatbar-launcher');
-  if (!btn) return;
-  // Older versions accidentally placed the launcher inside SillyTavern's extension menu,
-  // which made it appear as a loud custom pill among normal extension rows.
-  if (btn.closest('#extensionsMenu, #extensions_menu, .extensionsMenu, .extensions_menu, #extensions_list, .extensions_list')) {
-    btn.remove();
+  // Remove any legacy chat-input or floating launcher left by older versions.
+  document.querySelectorAll('#tua-chatbar-launcher, #tua-floating-launcher, .tua-floating-launcher').forEach(el => el.remove());
+}
+
+function getExtensionsMenuContainer() {
+  const selectors = [
+    '#extensionsMenu', '#extensions_menu', '#extensions_list', '#extensionsList', '#extensions_menu2',
+    '.extensionsMenu', '.extensions_menu', '.extensions_list', '.extensionsList',
+    '#extensionsMenu .list-group', '#extensions_menu .list-group', '.drawer-content .extensions_list'
+  ];
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (el) return el;
   }
+  // Fallback: find a visible container that already contains known extension rows.
+  const candidates = Array.from(document.querySelectorAll('div, nav, ul'));
+  return candidates.find(el => {
+    const txt = (el.textContent || '').trim();
+    return txt.includes('오픈데이터뱅크') || txt.includes('연결 프리셋 관리') || txt.includes('Generate Caption') || txt.includes('Peach Whisper');
+  }) || null;
+}
+
+function ensureExtensionMenuEntry() {
+  cleanupMisplacedLauncher();
+  const menu = getExtensionsMenuContainer();
+  if (!menu) return false;
+  let entry = document.getElementById('tua-extension-menu-entry');
+  if (!entry) {
+    entry = document.createElement('div');
+    entry.id = 'tua-extension-menu-entry';
+    entry.className = 'tua-extension-menu-entry';
+    entry.setAttribute('role', 'button');
+    entry.setAttribute('tabindex', '0');
+    entry.innerHTML = '<span class="tua-extension-menu-icon">🐶</span><span class="tua-extension-menu-text">콩고물 토오크</span>';
+    entry.addEventListener('click', () => {
+      const st = getSettings();
+      if (!st.enabled) {
+        st.enabled = true;
+        saveSettings();
+        hydrateGlobalSettingsUI();
+      }
+      setPanelVisible(true);
+    });
+    entry.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        entry.click();
+      }
+    });
+  }
+  if (entry.parentElement !== menu) menu.appendChild(entry);
+  return true;
+}
+
+function startExtensionMenuObserver() {
+  ensureExtensionMenuEntry();
+  if (window.__tuaMenuObserver) return;
+  window.__tuaMenuObserver = new MutationObserver(() => ensureExtensionMenuEntry());
+  window.__tuaMenuObserver.observe(document.body, { childList: true, subtree: true });
 }
 
 function ensureLauncher() {
-  cleanupMisplacedLauncher();
-  if (document.getElementById('tua-chatbar-launcher')) return;
-  const btn = document.createElement('button');
-  btn.id = 'tua-chatbar-launcher';
-  btn.type = 'button';
-  btn.textContent = '🐶콩고물 토오크';
-  btn.title = '🐶콩고물 토오크 열기';
-  btn.addEventListener('click', () => {
-    const s = getSettings();
-    if (!s.enabled) {
-      s.enabled = true;
-      saveSettings();
-      hydrateGlobalSettingsUI();
-    }
-    setPanelVisible(true);
-  });
-
-  // Put the launcher near the chat input area only. Do not append it to the global
-  // extension menu; that menu has its own style and our custom pill looked out of place.
-  const selectors = ['#send_form', '#chatSendForm', '#form_sheld', '#send_textarea', 'textarea[name="message"]'];
-  let target = null;
-  for (const sel of selectors) {
-    target = document.querySelector(sel);
-    if (target) break;
-  }
-  if (target) {
-    const isTextArea = target.id === 'send_textarea' || target.tagName === 'TEXTAREA';
-    const parent = isTextArea ? target.parentElement : target;
-    if (parent) parent.appendChild(btn);
-  } else {
-    btn.classList.add('tua-floating-launcher');
-    document.body.appendChild(btn);
-  }
+  // v2.0: no separate chat-input button. The opener lives inside SillyTavern's extension menu.
+  startExtensionMenuObserver();
 }
-
 function autoGrowInput() {
   const el = document.getElementById('tua-input');
   if (!el) return;
