@@ -280,7 +280,7 @@
 .tua-mini-note { opacity: .7; font-size: 12px; line-height: 1.4; margin-top: 8px; }
 
 @media (max-width: 640px) {
-  #tua-panel { right: 8px; bottom: 8px; width: calc(100vw - 16px); height: calc(100vh - 16px); }
+  #tua-panel { max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); }
   #tua-panel .tua-window { border-radius: 16px; }
 }
 
@@ -583,4 +583,18 @@
 .tua-settings-help,
 .tua-in-panel-settings small {
   font-size: calc(var(--tua-font-size) - 2px) !important;
+}
+
+
+/* v2.7: draggable panel and cleaner drag affordance */
+#tua-panel .tua-header {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+#tua-panel.tua-dragging .tua-header {
+  cursor: grabbing;
+}
+#tua-panel.tua-dragging {
+  user-select: none;
 }

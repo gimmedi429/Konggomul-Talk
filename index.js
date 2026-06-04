@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v2.6
+ * 🐶콩고물 토오크 v2.7
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -58,6 +58,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   recentMessages: 10,
   panelWidth: 380,
   panelHeight: 560,
+  panelLeft: null,
+  panelTop: null,
   profileMode: 'current',
   selectedProfile: '',
   cachedProfiles: [],
@@ -71,6 +73,7 @@ let contextMenuEl = null;
 let longPressTimer = null;
 let initialized = false;
 let resizeObserver = null;
+let draggingPanel = null;
 
 function ctx() { return SillyTavern.getContext(); }
 
@@ -298,43 +301,41 @@ function buildSystemPrompt() {
   const mode = MODES[activeModeKey] || MODES.care;
   return `You are ${characterName} texting {{user}} in a separate private messenger chat.
 
-The main goal is NOT to be the most helpful assistant. The main goal is to sound like ${characterName}.
-Use the selected mode only to decide what kind of conversation this is.
-The mode must never overwrite ${characterName}'s age, temperament, maturity level, humor, emotional distance, flaws, rhythm, relationship with {{user}}, or usual way of speaking.
+ABSOLUTE PRIORITY:
+- The reply must sound like ${characterName} from the current main chat, not like ChatGPT, a counselor, a helpful assistant, a teacher, a lifestyle columnist, or a polished generic boyfriend/girlfriend.
+- Character voice is more important than being neat, mature, comforting, clever, or perfectly useful.
+- If a reply is helpful but sounds unlike ${characterName}, it is a failed reply.
+- Use the recent main-chat character messages as the strongest voice model. Match their wording habits, sentence rhythm, emotional distance, humor, awkwardness, bluntness, confidence, age/maturity level, and how much they explain.
+- Do not smooth the character into a wiser, kinder, calmer, more rational, more romantic, or more emotionally fluent version of them.
 
 OUTPUT FORMAT:
-- Korean by default.
-- Direct text message only. No narration, no stage directions, no inner monologue, no labels, no XML/HTML, no phone_trigger, no think tags.
-- Usually 1 to 3 short paragraphs. Do not write a polished essay unless {{user}} asks for detailed work.
+- Korean by default, but preserve ${characterName}'s register and personality in Korean. Do not translate the character into polite ChatGPT Korean.
+- Direct messenger reply only. No narration, no stage directions, no inner monologue, no labels, no XML/HTML, no phone_trigger, no think tags.
+- Usually 1 to 3 short text-message paragraphs. Avoid polished essays unless {{user}} asks for detailed work.
 - Do not write {{user}}'s actions, thoughts, or dialogue.
 
 VOICE PRIORITY ORDER:
 1. Direct user request in the current message.
 2. Manual character voice note, if provided.
-3. Recent character voice samples from the main chat.
+3. Recent character voice samples from the main RP chat.
 4. Character card, personality, scenario, example dialogue, and relationship/memory.
 5. Selected mode.
 
-VOICE RULES:
-- Before replying, infer ${characterName}'s voice from the materials: word choice, sentence length, register, emotional maturity, awkwardness, teasing, restraint, intensity, confidence, humor, bluntness, warmth, and how much they explain.
-- Reply in that voice. Do not make ${characterName} more emotionally mature, therapeutic, polished, poetic, romantic, or rational than the source character.
-- If ${characterName} is young, chaotic, awkward, proud, prickly, dry, shy, dramatic, immature, evasive, formal, blunt, or strange, preserve that. Do not smooth it away.
-- Do not answer as a nice generic person. A slightly imperfect but character-accurate reply is better than a perfect comfort answer.
-- Do not copy {{user}}'s style. Do not copy previous bad side-chat answers if they conflict with the character voice.
-
-CARE AND COMFORT LIMITS:
-- Care means the topic is feelings/daily life/mental state. It does not mean automatic soft comfort.
-- Do not default to counseling phrases, lifestyle advice, teacher explanations, or ideal partner reassurance.
-- Avoid generic comfort clichés unless ${characterName} truly says them that way.
-- Do not overpraise {{user}} or inflate reassurance.
+VOICE EXECUTION RULES:
+- Before answering, infer ${characterName}'s exact voice from the recent main-chat samples: short/long sentences, slang/formality, awkwardness, teasing, self-correction, hesitation, confidence, intensity, emotional restraint, and humor.
+- Reply as the same person in a private text chat. The mode changes the topic/role, not the personality.
+- Preserve flaws. If ${characterName} is young, chaotic, awkward, proud, prickly, dry, shy, dramatic, immature, evasive, formal, blunt, or strange, keep that texture.
+- Avoid generic phrases that any nice AI could say. Prefer character-specific reactions, odd phrasing, small jokes, and imperfect but recognizable speech.
+- Do not over-explain. Do not wrap every answer in reassurance. Do not turn one simple message into a life lesson.
 
 TEXT-ONLY BOUNDARY:
 - This is a phone/message chat, not a physical scene.
-- Do not create unrequested physical actions, future promises, in-person plans, gifts, food bribes, buying things, bringing things, waiting somewhere, coming over, going somewhere, touching {{user}}, hugging, preparing tea/blankets/clothes, or telling {{user}} to come to you.
-- Only mention future in-person plans or favors if {{user}} explicitly asks for them.
-- Do not end with service-offer tails like “필요하면 말해”, “내가 해줄게”, “자료 보내줘”, “이따 봐줄게”, “뭘 해줄까”. End like a real character text: a reaction, joke, opinion, or nothing extra.
+- Do not invent unrequested physical actions, future promises, in-person plans, gifts, buying food, bringing things, waiting somewhere, coming over, going somewhere, touching {{user}}, hugging, preparing tea/blankets/clothes, or telling {{user}} to come to you.
+- Do not end with unrequested future/service offers such as “내일 해줄게”, “이따 봐줄게”, “가져갈게”, “사줄게”, “기다릴게”, “필요하면 말해”, “자료 보내줘”, “내가 뭘 해줄까”.
+- Only discuss future in-person plans or favors if {{user}} explicitly asks for them.
+- Stay inside this message exchange: react, joke, judge, disagree, reassure, organize, or answer here and now.
 
-MAIN RP BOUNDARY:
+MODE BOUNDARY:
 - Care, Secretary, and Co-worker are outside the active RP scene. Do not continue or analyze the RP there. Use main chat context only as background for relationship and voice.
 - Do not mention roleplay, scene, fiction, prompt, extension, AI, model, or SillyTavern in Care, Secretary, or Co-worker.
 - Watching RP may discuss the RP as RP.
@@ -353,8 +354,8 @@ ${getPersonaBlock()}
 MANUAL CHARACTER VOICE NOTE FOR 🐶콩고물 토오크:
 ${getVoiceNoteBlock()}
 
-RECENT CHARACTER VOICE SAMPLES FROM MAIN CHAT:
-Use these as the strongest automatic style reference. Convert the same voice into a private text-message reply. Do not continue these scenes unless Watching RP asks for RP discussion.
+RECENT MAIN-CHAT CHARACTER VOICE SAMPLES — STRONGEST STYLE SOURCE:
+The next reply must sound like the same character who wrote these. These are voice references, not plot to continue unless Watching RP is selected.
 ${getCharacterVoiceSamples()}
 
 RECENT MAIN CHAT MESSAGES AS BACKGROUND ONLY:
@@ -365,11 +366,7 @@ function buildPromptMessages(userText) {
   const room = getActiveRoom();
   const history = room.messages.slice(-10).filter(m => !m.loading && !m.error).map(m => {
     if (m.role === 'user') return { role: 'user', content: m.content };
-    return {
-      role: 'assistant',
-      content: `[Previous side-chat reply for conversation continuity only. Do not imitate its style if it sounds generic or conflicts with the character voice.]
-${m.content}`
-    };
+    return { role: 'assistant', content: m.content };
   });
   history.push({ role: 'user', content: userText });
   return history;
@@ -560,6 +557,8 @@ function ensurePanel() {
   $('#tua-refresh-profiles').on('click', refreshProfiles);
   $('#tua-reset-all-rooms').on('click', resetAllRoomsForCurrentCharacter);
 
+  makePanelDraggable();
+
   if (window.ResizeObserver) {
     resizeObserver = new ResizeObserver(entries => {
       const entry = entries[0];
@@ -575,6 +574,80 @@ function ensurePanel() {
     });
     resizeObserver.observe(panelEl);
   }
+}
+
+
+function clampPanelPosition(left, top) {
+  const s = getSettings();
+  const panel = panelEl;
+  if (!panel) return { left, top };
+  const rect = panel.getBoundingClientRect();
+  const w = rect.width || s.panelWidth || 380;
+  const h = rect.height || s.panelHeight || 560;
+  const margin = 8;
+  const maxLeft = Math.max(margin, window.innerWidth - w - margin);
+  const maxTop = Math.max(margin, window.innerHeight - h - margin);
+  return {
+    left: Math.max(margin, Math.min(Number(left) || margin, maxLeft)),
+    top: Math.max(margin, Math.min(Number(top) || margin, maxTop))
+  };
+}
+
+function applyPanelPosition() {
+  if (!panelEl) return;
+  const s = getSettings();
+  if (Number.isFinite(Number(s.panelLeft)) && Number.isFinite(Number(s.panelTop))) {
+    const pos = clampPanelPosition(s.panelLeft, s.panelTop);
+    panelEl.style.left = `${pos.left}px`;
+    panelEl.style.top = `${pos.top}px`;
+    panelEl.style.right = 'auto';
+    panelEl.style.bottom = 'auto';
+  } else {
+    panelEl.style.left = 'auto';
+    panelEl.style.top = 'auto';
+    panelEl.style.right = '18px';
+    panelEl.style.bottom = '18px';
+  }
+}
+
+function makePanelDraggable() {
+  if (!panelEl || panelEl.dataset.draggableReady === '1') return;
+  panelEl.dataset.draggableReady = '1';
+  const header = panelEl.querySelector('.tua-header');
+  if (!header) return;
+  header.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button, select, input, textarea')) return;
+    const rect = panelEl.getBoundingClientRect();
+    draggingPanel = {
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top
+    };
+    panelEl.classList.add('tua-dragging');
+    header.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  });
+  header.addEventListener('pointermove', (e) => {
+    if (!draggingPanel) return;
+    const pos = clampPanelPosition(e.clientX - draggingPanel.offsetX, e.clientY - draggingPanel.offsetY);
+    panelEl.style.left = `${pos.left}px`;
+    panelEl.style.top = `${pos.top}px`;
+    panelEl.style.right = 'auto';
+    panelEl.style.bottom = 'auto';
+  });
+  const finish = (e) => {
+    if (!draggingPanel) return;
+    const rect = panelEl.getBoundingClientRect();
+    const pos = clampPanelPosition(rect.left, rect.top);
+    const s = getSettings();
+    s.panelLeft = Math.round(pos.left);
+    s.panelTop = Math.round(pos.top);
+    saveSettings();
+    panelEl.classList.remove('tua-dragging');
+    draggingPanel = null;
+    try { header.releasePointerCapture?.(e.pointerId); } catch {}
+  };
+  header.addEventListener('pointerup', finish);
+  header.addEventListener('pointercancel', finish);
 }
 
 function resetAllRoomsForCurrentCharacter() {
@@ -598,6 +671,7 @@ function renameActiveRoom() {
 function setPanelVisible(show) {
   ensurePanel();
   panelEl.classList.toggle('tua-visible', !!show);
+  if (show) applyPanelPosition();
   const settings = getSettings();
   settings.openOnStart = !!show;
   saveSettings();
@@ -714,6 +788,7 @@ function applyVisualSettings() {
   document.documentElement.style.setProperty('--tua-font-size', `${s.fontSize}px`);
   document.documentElement.style.setProperty('--tua-panel-width', `${s.panelWidth}px`);
   document.documentElement.style.setProperty('--tua-panel-height', `${s.panelHeight}px`);
+  applyPanelPosition();
 }
 
 function setStatus(text) { $('#tua-status').text(text || ''); }
