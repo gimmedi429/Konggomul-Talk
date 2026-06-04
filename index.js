@@ -1,5 +1,5 @@
 /*
- * 제목 미정 Assistant v0.4
+ * 제목 미정 Assistant v0.5
  * Separate in-character assistant messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -13,38 +13,41 @@ const MODES = {
     label: 'Lover / Care',
     badge: 'Care',
     instruction: `Mode: Lover / Care.
-You are still {{char}} and you are speaking inside the relationship you already have with {{user}}.
-Do not break the fourth wall. Do not say this is roleplay, fiction, a chat extension, or an AI conversation.
-Talk with {{user}} about real-life worries, daily questions, small curiosities, choices, feelings, and mental steadiness.
-Use the established character/persona/relationship/memory as your natural background, not as something to analyze out loud.
-The current main chat situation may not perfectly match {{user}}'s real-life question. If that happens, simply allow the mismatch and answer naturally.
-Do not continue the main scene. Do not describe new actions unless {{user}} asks for scene-style roleplay.`
+You are still {{char}} in a private text-message conversation with {{user}}.
+Do not break the fourth wall. Do not say this is roleplay, fiction, a chat extension, an AI conversation, or a prompt.
+Talk with {{user}} about real-life worries, everyday questions, small curiosities, choices, feelings, and mental steadiness.
+The existing relationship, character memory, persona, and current RP-injected character context are your natural background, but you do not analyze them out loud.
+The main RP situation may not perfectly match {{user}}'s real-life question. Quietly allow that mismatch and answer as if texting privately.
+Do not continue the main scene. Do not narrate actions, stage directions, or inner monologue. Write only the message {{char}} sends back unless {{user}} explicitly asks otherwise.`
   },
   secretary: {
     label: 'Secretary',
     badge: 'Secretary',
     instruction: `Mode: Secretary.
-You are still {{char}}, taking the role of {{user}}'s secretary/organizer in this private side conversation.
+You are still {{char}} in a private text-message conversation, but your selected role is secretary/organizer.
 Do not break the fourth wall. Do not become a generic office assistant.
 Help with organization, schedules, task lists, priorities, decisions, reminders, plans, and clear summaries.
-Keep {{char}}'s voice, temperament, relationship, and memory intact while being practical and precise.`
+Keep {{char}}'s voice, temperament, relationship, and memory intact while being practical and precise.
+Do not narrate actions or continue the main scene. Answer like a direct message.`
   },
   coworker: {
     label: '업무 동료',
     badge: 'Coworker',
     instruction: `Mode: 업무 동료.
-You are still {{char}}, but in this side conversation you are treated as {{user}}'s coworker at the same company.
-Do not break the fourth wall. Do not mention roleplay, fiction, AI, or extensions.
+You are still {{char}} in a private text-message conversation, but your selected role is {{user}}'s coworker at the same company.
+Do not break the fourth wall. Do not mention roleplay, fiction, AI, prompts, or extensions.
 Help with work-related questions, writing, customer responses, marketing, judgment calls, practical decisions, and task handling.
-Answer like a competent coworker who knows {{user}}, while still sounding like {{char}}.`
+Answer like a competent coworker who knows {{user}}, while still sounding like {{char}}.
+Do not narrate actions or continue the main scene. Answer like a direct message.`
   },
   ooc: {
     label: 'OOC 대화',
     badge: 'OOC',
     instruction: `Mode: OOC 대화.
-This mode is an assistant mode for the main RP. Help {{user}} understand or develop the current RP: scene interpretation, character emotions, continuity, possible next moves, relationship dynamics, and setting consistency.
-You may discuss the RP as RP in this mode only.
-Do not continue the main RP scene unless {{user}} explicitly asks. Do not write {{user}}'s next reply unless asked.`
+This is an RP-support assistant mode. Help {{user}} understand, organize, or develop the current RP: scene interpretation, character emotions, continuity, possible next moves, relationship dynamics, setting consistency, and reply planning.
+In this mode only, you may discuss the RP from the outside.
+Do not continue the main RP scene unless {{user}} explicitly asks. Do not write {{user}}'s next reply unless asked.
+Keep the character's perspective and memory available, but make the purpose RP assistance.`
   }
 };
 
@@ -116,6 +119,11 @@ async function loadRooms() {
     data = lf ? await lf.getItem(key) : JSON.parse(localStorage.getItem(key) || 'null');
   } catch { data = null; }
   if (!data || !Array.isArray(data.rooms)) data = { rooms: [] };
+  // v0.5 migration: earlier builds could create many blank rooms while testing.
+  // If there are multiple completely empty rooms, keep only one so the room list doesn't explode.
+  if (data.rooms.length > 1 && data.rooms.every(r => !Array.isArray(r.messages) || r.messages.length === 0)) {
+    data.rooms = [data.rooms[0]];
+  }
   roomState = data;
   if (!roomState.rooms.length) createRoom(false);
   if (!activeRoomId || !roomState.rooms.some(r => r.id === activeRoomId)) activeRoomId = roomState.rooms[0]?.id || null;
@@ -233,11 +241,12 @@ function buildSystemPrompt() {
   const settings = getSettings();
   const characterName = getCharName();
   const mode = MODES[settings.mode] || MODES.care;
-  return `You are ${characterName} in a separate private messenger with {{user}}.
+  return `You are ${characterName} in a separate private text-message chat with {{user}}.
 
 CRITICAL RULES:
 - Always answer in Korean unless {{user}} explicitly asks otherwise.
 - You must remain ${characterName}; preserve the character's voice, temperament, relationship, habits, and memory.
+- Write like a message sent in a private messenger. Do not write novel narration, stage directions, or actions in asterisks unless {{user}} explicitly asks for scene-style writing.
 - Do not mention being an AI, LLM, extension, prompt, SillyTavern, roleplay bot, fictional character, or model.
 - Do not break the fourth wall, except in OOC mode where discussing roleplay as roleplay is allowed.
 - This assistant messenger is separate from the active main chat. Do not continue the main scene unless {{user}} explicitly asks.
@@ -416,6 +425,7 @@ function ensurePanel() {
         <label>창 높이(px)
           <input id="tua-panel-height" type="number" min="320" max="1000" step="10">
         </label>
+        <button id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 Assistant 대화 전체 초기화</button>
         <div id="tua-status" class="tua-status"></div>
       </div>
       <div id="tua-messages" class="tua-messages"></div>
@@ -437,6 +447,7 @@ function ensurePanel() {
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrentInput(); } });
   $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-width,#tua-panel-height').on('change input', readPanelSettingsUI);
   $('#tua-refresh-profiles').on('click', refreshProfiles);
+  $('#tua-reset-all-rooms').on('click', resetAllRoomsForCurrentCharacter);
 
   if (window.ResizeObserver) {
     resizeObserver = new ResizeObserver(entries => {
@@ -455,6 +466,15 @@ function ensurePanel() {
   }
 }
 
+function resetAllRoomsForCurrentCharacter() {
+  if (!confirm('이 캐릭터와의 Assistant 대화방을 전부 초기화할까?')) return;
+  roomState = { rooms: [] };
+  createRoom(false);
+  saveRooms();
+  renderAll();
+  setStatus('Assistant 대화방을 초기화했어.');
+}
+
 function renameActiveRoom() {
   const room = getActiveRoom();
   const next = prompt('대화방 이름', room.title || '');
@@ -468,8 +488,10 @@ function setPanelVisible(show) {
   ensurePanel();
   panelEl.classList.toggle('tua-visible', !!show);
   const settings = getSettings();
+  settings.enabled = !!show;
   settings.openOnStart = !!show;
   saveSettings();
+  hydrateGlobalSettingsUI();
 }
 
 function togglePanel() { ensurePanel(); setPanelVisible(!panelEl.classList.contains('tua-visible')); }
@@ -509,23 +531,23 @@ function renderSettings() {
         <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
       </div>
       <div class="inline-drawer-content">
-        <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화</label>
-        <button id="tua-open-button" class="menu_button">Assistant 창 열기/닫기</button>
-        <div class="tua-mini-note">세부 설정은 Assistant 창 오른쪽 위 ⚙에서 조정.</div>
+        <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화 / 창 열기</label>
+        <div class="tua-mini-note">체크하면 Assistant 창이 열리고, 해제하면 닫혀. 세부 설정은 창 오른쪽 위 ⚙에서 조정.</div>
       </div>
     </div>
   </div>`;
   $('#extensions_settings2').append(html);
   hydrateGlobalSettingsUI();
   $('#tua-setting-enabled').on('change', readGlobalSettingsUI);
-  $('#tua-open-button').on('click', togglePanel);
 }
 
 function hydrateGlobalSettingsUI() { $('#tua-setting-enabled').prop('checked', !!getSettings().enabled); }
 
 function readGlobalSettingsUI() {
-  getSettings().enabled = $('#tua-setting-enabled').prop('checked');
+  const s = getSettings();
+  s.enabled = $('#tua-setting-enabled').prop('checked');
   saveSettings();
+  setPanelVisible(!!s.enabled);
 }
 
 function hydratePanelSettingsUI() {
@@ -657,7 +679,7 @@ async function init() {
   ensurePanel();
   applyVisualSettings();
   await loadRooms();
-  if (getSettings().openOnStart) setPanelVisible(true);
+  if (getSettings().enabled) setPanelVisible(true);
   const context = ctx();
   context.eventSource?.on?.(context.event_types?.CHAT_CHANGED, async () => { await loadRooms(); renderAll(); });
   context.eventSource?.on?.(context.event_types?.CHARACTER_EDITED, renderAll);

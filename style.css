@@ -1,7 +1,18 @@
 :root {
   --tua-font-size: 14px;
-  --tua-panel-width: 380px;
-  --tua-panel-height: 560px;
+  --tua-panel-width: 360px;
+  --tua-panel-height: 540px;
+  --tua-bg: #fbf4e7;
+  --tua-bg-2: #f4e5c9;
+  --tua-card: #fffaf0;
+  --tua-line: #dfcaa4;
+  --tua-text: #21170f;
+  --tua-muted: #7b6548;
+  --tua-user-bubble: #f1d08f;
+  --tua-char-bubble: #fff7de;
+  --tua-accent: #9f7a36;
+  --tua-accent-dark: #6e4f1f;
+  --tua-shadow: rgba(92, 66, 28, .22);
 }
 
 #tua-panel {
@@ -27,11 +38,11 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 18px;
-  background: rgba(27, 27, 31, .97);
-  color: #f5f1ec;
-  box-shadow: 0 18px 55px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08);
-  backdrop-filter: blur(14px);
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--tua-bg), #f8ecd4);
+  color: var(--tua-text);
+  box-shadow: 0 18px 48px var(--tua-shadow), 0 0 0 1px rgba(111, 77, 25, .18);
+  border: 1px solid rgba(159, 122, 54, .25);
 }
 
 .tua-header {
@@ -40,21 +51,24 @@
   justify-content: space-between;
   gap: 10px;
   padding: 13px 13px 11px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-  background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  border-bottom: 1px solid var(--tua-line);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255,255,255,.85) 0 11%, transparent 12%),
+    linear-gradient(135deg, #f7dfaa, #f3d39b 48%, #ead0a2);
 }
 .tua-titlebox { min-width: 0; }
 .tua-title {
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 900;
+  letter-spacing: -0.03em;
   font-size: calc(var(--tua-font-size) + 2px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #2a1c0d;
 }
 .tua-subtitle {
   margin-top: 3px;
-  opacity: .67;
+  color: #6b4f28;
   font-size: calc(var(--tua-font-size) - 3px);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -65,37 +79,43 @@
 .tua-roombar button,
 #tua-send,
 .tua-msg-actions button,
-.tua-profile-row button {
-  border: 0;
+.tua-profile-row button,
+.tua-danger-light {
+  border: 1px solid rgba(110, 79, 31, .22);
   border-radius: 999px;
   padding: 7px 9px;
-  background: rgba(255,255,255,.10);
-  color: #f5f1ec;
+  background: rgba(255, 250, 240, .72);
+  color: var(--tua-text);
   cursor: pointer;
   line-height: 1;
+  box-shadow: 0 1px 0 rgba(255,255,255,.7) inset;
 }
 .tua-header-actions button:hover,
 .tua-roombar button:hover,
 #tua-send:hover,
 .tua-msg-actions button:hover,
-.tua-profile-row button:hover { background: rgba(255,255,255,.18); }
+.tua-profile-row button:hover,
+.tua-danger-light:hover { background: #fff4d7; }
 
 .tua-roombar {
   display: flex;
   align-items: center;
   gap: 7px;
   padding: 8px 10px;
-  border-bottom: 1px solid rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(159, 122, 54, .22);
+  background: rgba(255, 250, 240, .48);
 }
 .tua-active-room-title {
   flex: 1;
   min-width: 0;
   padding: 7px 10px;
   border-radius: 12px;
-  background: rgba(255,255,255,.06);
+  background: rgba(255,255,255,.62);
+  border: 1px solid rgba(159, 122, 54, .18);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  color: var(--tua-text);
 }
 .tua-roombar button { font-size: calc(var(--tua-font-size) - 2px); }
 
@@ -105,8 +125,8 @@
   overflow-y: auto;
   padding: 8px;
   gap: 6px;
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  background: rgba(0,0,0,.14);
+  border-bottom: 1px solid rgba(159, 122, 54, .2);
+  background: rgba(246, 227, 190, .58);
 }
 .tua-room-list.open { display: flex; flex-direction: column; }
 .tua-room-item {
@@ -114,49 +134,59 @@
   justify-content: space-between;
   gap: 10px;
   align-items: center;
-  border: 0;
-  border-radius: 12px;
+  border: 1px solid rgba(159, 122, 54, .18);
+  border-radius: 13px;
   padding: 9px 10px;
-  color: #f5f1ec;
-  background: rgba(255,255,255,.06);
+  color: var(--tua-text);
+  background: rgba(255, 250, 240, .72);
   cursor: pointer;
   text-align: left;
 }
-.tua-room-item.active { background: rgba(236,224,204,.22); }
+.tua-room-item.active { background: #f2d89f; border-color: rgba(159, 122, 54, .38); }
 .tua-room-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tua-room-item em { opacity: .55; font-style: normal; }
+.tua-room-item em { opacity: .68; font-style: normal; color: var(--tua-muted); }
 
 .tua-in-panel-settings {
   display: none;
   padding: 12px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-  background: rgba(0,0,0,.18);
+  border-bottom: 1px solid rgba(159, 122, 54, .24);
+  background: rgba(255, 248, 232, .94);
   overflow-y: auto;
-  max-height: 48%;
+  max-height: 52%;
 }
 .tua-in-panel-settings.open { display: block; }
-.tua-settings-title { font-weight: 800; margin-bottom: 8px; }
+.tua-settings-title { font-weight: 900; margin-bottom: 8px; color: #2a1c0d; }
 .tua-in-panel-settings label {
   display: flex;
   flex-direction: column;
   gap: 5px;
   margin: 8px 0;
   font-size: calc(var(--tua-font-size) - 1px);
+  color: #3b2913;
 }
 .tua-in-panel-settings input,
 .tua-in-panel-settings select {
   width: 100%;
-  border: 1px solid rgba(255,255,255,.12);
+  border: 1px solid rgba(159, 122, 54, .34);
   outline: 0;
   border-radius: 10px;
   padding: 8px 9px;
-  background: rgba(255,255,255,.09);
-  color: #f5f1ec;
+  background: #fffdf6;
+  color: var(--tua-text);
 }
 .tua-profile-row { display: flex; gap: 6px; }
 .tua-profile-row select { flex: 1; }
 .tua-profile-row button { border-radius: 10px; }
-.tua-status { min-height: 16px; opacity: .64; font-size: calc(var(--tua-font-size) - 3px); margin-top: 8px; }
+.tua-danger-light {
+  display: inline-flex;
+  justify-content: center;
+  margin-top: 8px;
+  border-radius: 12px;
+  background: #f5e2bf;
+  color: #5c381a;
+  width: 100%;
+}
+.tua-status { min-height: 16px; color: var(--tua-muted); font-size: calc(var(--tua-font-size) - 3px); margin-top: 8px; }
 
 .tua-messages {
   flex: 1;
@@ -165,49 +195,67 @@
   display: flex;
   flex-direction: column;
   gap: 13px;
-  background: radial-gradient(circle at top left, rgba(255,255,255,.04), transparent 36%);
+  background:
+    radial-gradient(circle at 8px 8px, rgba(160, 122, 54, .09) 0 2px, transparent 3px),
+    linear-gradient(180deg, #fbf4e7, #f6e6c7);
+  background-size: 22px 22px, auto;
 }
 .tua-empty {
   margin: auto;
-  max-width: 78%;
+  max-width: 82%;
   text-align: center;
-  opacity: .42;
+  color: var(--tua-muted);
   line-height: 1.5;
 }
 .tua-msg { display: flex; flex-direction: column; max-width: 88%; gap: 4px; }
 .tua-user { align-self: flex-end; align-items: flex-end; }
 .tua-assistant { align-self: flex-start; align-items: flex-start; }
-.tua-msg-name { font-size: calc(var(--tua-font-size) - 4px); opacity: .5; padding: 0 5px; }
-.tua-bubble { line-height: 1.55; padding: 10px 12px; border-radius: 17px; word-break: break-word; }
-.tua-user .tua-bubble { background: #ece0cc; color: #191817; border-bottom-right-radius: 5px; }
-.tua-assistant .tua-bubble { background: rgba(255,255,255,.10); color: #f8f4ef; border-bottom-left-radius: 5px; }
-.tua-error .tua-bubble { background: rgba(170,60,60,.35); }
+.tua-msg-name { font-size: calc(var(--tua-font-size) - 4px); color: var(--tua-muted); padding: 0 5px; }
+.tua-bubble {
+  line-height: 1.55;
+  padding: 10px 12px;
+  border-radius: 17px;
+  word-break: break-word;
+  color: #15100a;
+  border: 1px solid rgba(134, 96, 36, .16);
+  box-shadow: 0 2px 8px rgba(126, 90, 36, .08);
+}
+.tua-user .tua-bubble { background: var(--tua-user-bubble); border-bottom-right-radius: 5px; }
+.tua-assistant .tua-bubble { background: var(--tua-char-bubble); border-bottom-left-radius: 5px; }
+.tua-error .tua-bubble { background: #ffd8c9; }
 .tua-loading .tua-bubble { opacity: .7; animation: tuaPulse 1s infinite alternate; }
 @keyframes tuaPulse { from { opacity: .45; } to { opacity: .9; } }
 .tua-msg-actions { display: none; gap: 4px; padding: 0 4px; }
 .tua-msg:hover .tua-msg-actions { display: flex; }
-.tua-msg-actions button { font-size: calc(var(--tua-font-size) - 4px); padding: 4px 7px; opacity: .72; }
+.tua-msg-actions button { font-size: calc(var(--tua-font-size) - 4px); padding: 4px 7px; opacity: .86; background: rgba(255, 250, 240, .9); }
 
-.tua-input-row { display: flex; gap: 9px; padding: 11px; border-top: 1px solid rgba(255,255,255,.08); }
+.tua-input-row {
+  display: flex;
+  gap: 9px;
+  padding: 11px;
+  border-top: 1px solid rgba(159, 122, 54, .24);
+  background: rgba(255, 250, 240, .7);
+}
 #tua-input {
   flex: 1;
   min-height: 42px;
   max-height: 118px;
   resize: vertical;
-  border: 0;
+  border: 1px solid rgba(159, 122, 54, .24);
   outline: 0;
   border-radius: 15px;
   padding: 11px 12px;
   font-size: var(--tua-font-size);
-  color: #f5f1ec;
-  background: rgba(255,255,255,.10);
+  color: var(--tua-text);
+  background: #fffdf6;
 }
-#tua-send { padding: 0 15px; background: #ece0cc; color: #181818; font-weight: 800; }
-.tua-hint { padding: 0 13px 11px; opacity: .38; font-size: calc(var(--tua-font-size) - 4px); }
+#tua-input::placeholder { color: #b39970; }
+#tua-send { padding: 0 15px; background: #e9c77d; color: #18110a; font-weight: 900; }
+.tua-hint { padding: 0 13px 11px; color: #8a714f; font-size: calc(var(--tua-font-size) - 4px); background: rgba(255, 250, 240, .7); }
 
 .tua-settings-mini .inline-drawer-content { padding-top: 8px; }
 .tua-settings-mini .checkbox_label { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
-.tua-mini-note { opacity: .65; font-size: 12px; line-height: 1.4; margin-top: 8px; }
+.tua-mini-note { opacity: .7; font-size: 12px; line-height: 1.4; margin-top: 8px; }
 
 @media (max-width: 640px) {
   #tua-panel { right: 8px; bottom: 8px; width: calc(100vw - 16px); height: calc(100vh - 16px); }
