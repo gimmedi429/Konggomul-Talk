@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v3.0
+ * 🐶콩고물 토오크 v3.1
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -383,6 +383,81 @@ ${getRecentChatBlock(settings.recentMessages)}
 ${getAssistantConversationBlock()}
 
 이제 ${characterName}의 말투로, 선택된 모드에 맞게 {{user}}에게 답장해라.`;
+}
+
+
+async function runSlashCommand(command) {
+  const context = ctx();
+  try {
+    if (typeof context.executeSlashCommands === 'function') {
+      const result = await context.executeSlashCommands(command);
+      return result?.pipe ?? result?.message ?? result?.text ?? String(result ?? '');
+    }
+    if (typeof context.executeSlashCommand === 'function') {
+      const result = await context.executeSlashCommand(command);
+      return result?.pipe ?? result?.message ?? result?.text ?? String(result ?? '');
+    }
+    const input = document.querySelector('#send_textarea, textarea[name="send_textarea"], textarea');
+    const send = document.querySelector('#send_but, #send_button, .send_button');
+    if (input && send) {
+      const old = input.value;
+      input.value = command;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      send.click();
+      input.value = old;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      return '';
+    }
+  } catch (e) {
+    console.warn('[TUA] slash command failed', command, e);
+  }
+  return '';
+}
+
+function parseProfileList(raw) {
+  const text = String(raw || '');
+  return text
+    .split(/\r?\n|,/) 
+    .map(x => x.replace(/^[-*•\s]+/, '').trim())
+    .map(x => x.replace(/^`|`$/g, '').trim())
+    .filter(Boolean)
+    .filter(x => !/profile/i.test(x) || !/list/i.test(x))
+    .slice(0, 100);
+}
+
+async function refreshProfiles() {
+  const s = getSettings();
+  try {
+    const raw = await runSlashCommand('/profile-list');
+    const names = parseProfileList(raw);
+    s.cachedProfiles = names;
+    saveSettings();
+    renderProfileOptions();
+    setStatus(names.length ? `프로필 ${names.length}개를 불러왔습니다.` : '프로필 목록이 비어 있음');
+  } catch (e) {
+    setStatus('프로필 목록 불러오기 실패');
+    console.warn('[TUA] profile-list failed', e);
+  }
+}
+
+async function getCurrentProfileName() {
+  try { return String(await runSlashCommand('/profile')).trim(); }
+  catch { return ''; }
+}
+
+async function useSelectedProfileIfNeeded(callback) {
+  const s = getSettings();
+  if (s.profileMode !== 'profile' || !s.selectedProfile) return await callback();
+  let previous = '';
+  try { previous = await getCurrentProfileName(); } catch {}
+  try {
+    await runSlashCommand(`/profile ${s.selectedProfile}`);
+    return await callback();
+  } finally {
+    if (previous && previous !== s.selectedProfile) {
+      try { await runSlashCommand(`/profile ${previous}`); } catch (e) { console.warn('[TUA] profile restore failed', e); }
+    }
+  }
 }
 
 function sanitizeAssistantReply(text) {
