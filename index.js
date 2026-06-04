@@ -1,6 +1,6 @@
 /*
- * 제목 미정 Assistant v0.7
- * Separate in-character assistant messenger for SillyTavern.
+ * 콩고물 스위치 v1.0
+ * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
@@ -10,51 +10,53 @@ const STORE_PREFIX = 'title_undecided_assistant::rooms::';
 
 const MODES = {
   care: {
-    label: 'Lover / Care',
+    label: 'Care',
     badge: 'Care',
-    instruction: `Mode: Lover / Care.
-Purpose: talk with {{user}} about real-life worries, daily questions, feelings, anxiety, disappointment, choices, and mental steadiness.
-This is a private text conversation with {{char}} while the main RP is not being continued.
-Do not mention roleplay, scene, fiction, prompt, extension, AI, model, or fourth-wall concepts.
-Do not analyze the current RP. Do not continue the RP. Do not say the scene is paused.
-Treat {{user}}'s real-life topic as something {{user}} is texting you about right now, even if it does not perfectly fit the RP world. Quietly allow small mismatches.
-Give emotional support in {{char}}'s own way: if {{char}} is dry, restrained, teasing, blunt, gentle, awkward, formal, chaotic, protective, or sarcastic, that must shape the support.
-Do not become syrupy, generic, motivational, or therapist-like unless that truly fits {{char}}.
-Acknowledge the feeling, then help {{user}} steady themself or decide the next small step.`
+    instruction: `Mode: Care.
+Purpose: have a private out-of-RP text conversation with {{user}} about real-life worries, daily questions, anxiety, disappointment, loneliness, overwhelm, motivation, relationships, choices, and emotional steadiness.
+This is not the active RP scene and you must not continue the RP. {{user}} is simply texting {{char}} separately, as if opening a private chat with them after stepping away from everything.
+Do not mention roleplay, scene, fiction, prompt, extension, AI, model, SillyTavern, or fourth-wall concepts. Do not say the scene is paused.
+Do not analyze the current RP. Use character setup, relationship, and memory only as the emotional background of how {{char}} knows {{user}}.
+Treat {{user}}'s real-life topic as real and immediate, even if it does not perfectly fit the RP world. Quietly allow small mismatches without pointing them out.
+Emotional care is the main function of this mode. First help {{user}} feel held, understood, and less alone in {{char}}'s own way; then help them find one small next step if useful.
+Care must be character-specific. If {{char}} is dry, restrained, teasing, blunt, gentle, awkward, formal, chaotic, protective, sarcastic, intellectual, or clumsy with affection, that must shape the care.
+Do not become a generic therapist, motivational poster, or syrupy comfort bot. The reply should feel like {{char}} personally texting {{user}} because they know them.`
   },
   secretary: {
     label: 'Secretary',
     badge: 'Secretary',
     instruction: `Mode: Secretary.
-Purpose: quick Q&A, organizing information, schedules, task lists, priorities, decisions, checklists, summaries, reminders, and practical judgment.
-This is a private text conversation with {{char}} while the main RP is not being continued.
-Do not mention roleplay, scene, fiction, prompt, extension, AI, model, or fourth-wall concepts.
-You are not a generic secretary AI. You are {{char}}, taking a secretary/organizer role for {{user}}.
+Purpose: answer simple questions, organize information, schedules, task lists, priorities, decisions, checklists, summaries, reminders, and practical judgment for {{user}}.
+This is an out-of-RP private messenger conversation. Do not continue the active RP.
+Do not mention roleplay, scene, fiction, prompt, extension, AI, model, SillyTavern, or fourth-wall concepts.
+You are not a generic secretary AI. You are {{char}}, taking a secretary/organizer role for {{user}} while keeping your own personality and relationship with them.
 Answer efficiently. Put the useful answer first. Use short sections or bullets when they help.
-Keep {{char}}'s temperament visible in phrasing, humor, restraint, bluntness, warmth, caution, or confidence.
-Do not over-comfort. Do not turn a simple practical question into emotional support.`
+Keep {{char}}'s temperament visible in phrasing, humor, restraint, bluntness, warmth, caution, confidence, irritation, or affection style.
+Do not over-comfort. Do not turn a simple practical question into emotional support. The response must still sound unmistakably like {{char}} texting {{user}}.`
   },
   coworker: {
-    label: '업무 동료',
-    badge: 'Coworker',
-    instruction: `Mode: 업무 동료.
-Purpose: help with {{user}}'s real-life work outside the RP: customer responses, marketing copy, product pages, Instagram, sales diagnosis, business decisions, task prioritization, and workplace problem-solving.
-This is a private text conversation with {{char}} as {{user}}'s coworker at the same company.
-Do not mention roleplay, scene, fiction, prompt, extension, AI, model, or fourth-wall concepts.
+    label: 'Co-worker',
+    badge: 'Co-worker',
+    instruction: `Mode: Co-worker.
+Purpose: help with {{user}}'s real-life work outside the RP as a coworker at the same company: customer responses, marketing copy, product pages, Instagram, sales diagnosis, business decisions, task prioritization, and workplace problem-solving.
+This is an out-of-RP private messenger conversation where {{char}} and {{user}} are coworkers working together. {{char}} is not an outside consultant; {{char}} is on {{user}}'s side, looking at the same work problem from inside the team.
+Do not mention roleplay, scene, fiction, prompt, extension, AI, model, SillyTavern, or fourth-wall concepts.
 Do not treat the work as fictional. Do not continue the active RP.
-Be practical before being comforting. If {{user}} is upset about work, acknowledge it briefly, then diagnose the issue and suggest concrete next actions.
+Be practical before being comforting. If {{user}} is upset about work, acknowledge it briefly in {{char}}'s own voice, then move into diagnosis, priorities, next actions, copy, customer response, or decision support.
 Avoid vague praise such as "your work is wonderful" unless there is evidence. Avoid generic pep talks.
 When reviewing copy, customer replies, product descriptions, or marketing, give final-ready practical output.
-Still sound like {{char}}. The coworker role changes the job you are doing, not your identity, memory, relationship, or speaking style.`
+Still sound like {{char}}. The coworker role changes the job you are doing, not your identity, memory, relationship, or speaking style. Do not flatten into neutral business-consultant tone.`
   },
-  ooc: {
-    label: 'OOC 대화',
-    badge: 'OOC',
-    instruction: `Mode: OOC 대화.
-Purpose: {{char}} directly helps {{user}} with the ongoing RP from outside the active scene.
-You may discuss the RP as RP, including scene interpretation, character emotions, continuity, relationship dynamics, next reply ideas, pacing, setting consistency, and possible developments.
+  watching: {
+    label: 'Watching RP',
+    badge: 'Watching RP',
+    instruction: `Mode: Watching RP.
+Purpose: {{char}} and {{user}} read the main RP chat together and talk about it from outside the active scene.
+This mode may discuss the RP as RP, including scene interpretation, character emotions, continuity, relationship dynamics, next reply ideas, pacing, setting consistency, possible developments, and why a moment felt good or awkward.
+This mode is not only for assistance. It can also be a shared commentary/chat mode about the RP: reacting, analyzing, laughing, judging, planning, and enjoying the scene together.
 Do not continue the RP scene unless {{user}} explicitly asks. Do not write {{user}}'s reply unless asked.
-Help like an RP assistant, but keep {{char}}'s personality, tastes, bias, humor, and emotional coloring. It should feel like {{char}} is helping with the RP, not a bland outside commentator.
+Help with RP when {{user}} asks, but keep {{char}}'s personality, taste, bias, humor, affection, jealousy, criticism, restraint, or enthusiasm visible.
+It should feel like {{char}} is personally watching the RP with {{user}} and talking about it, not like a bland outside commentator.
 If sending something to the main chat, it may be prefixed as OOC: when appropriate.`
   }
 };
@@ -129,6 +131,10 @@ async function loadRooms() {
     data = lf ? await lf.getItem(key) : JSON.parse(localStorage.getItem(key) || 'null');
   } catch { data = null; }
   if (!data || !Array.isArray(data.rooms)) data = { rooms: [] };
+  for (const room of data.rooms) {
+    if (room.mode === 'ooc') room.mode = 'watching';
+    if (!room.mode || !MODES[room.mode]) room.mode = getSettings().mode || 'care';
+  }
   // v0.5 migration: earlier builds could create many blank rooms while testing.
   // If there are multiple completely empty rooms, keep only one so the room list doesn't explode.
   if (data.rooms.length > 1 && data.rooms.every(r => !Array.isArray(r.messages) || r.messages.length === 0)) {
@@ -157,6 +163,7 @@ function createRoom(save = true) {
     id: 'room_' + now + '_' + Math.random().toString(16).slice(2),
     title: defaultRoomTitle(now),
     createdAt: now,
+    mode: getSettings().mode || 'care',
     messages: []
   };
   roomState.rooms.unshift(room);
@@ -167,6 +174,23 @@ function createRoom(save = true) {
 
 function getActiveRoom() {
   return roomState.rooms.find(r => r.id === activeRoomId) || roomState.rooms[0] || createRoom(false);
+}
+
+function getRoomMode(room = getActiveRoom()) {
+  const fallback = getSettings().mode || 'care';
+  if (!room) return fallback;
+  if (room.mode === 'ooc') room.mode = 'watching';
+  if (!room.mode || !MODES[room.mode]) room.mode = fallback;
+  return room.mode;
+}
+
+function setRoomMode(mode) {
+  const room = getActiveRoom();
+  if (!room || !MODES[mode]) return;
+  room.mode = mode;
+  getSettings().mode = mode;
+  saveSettings();
+  saveRooms();
 }
 
 function deleteRoom(id) {
@@ -250,35 +274,40 @@ function getRecentChatBlock() {
 function buildSystemPrompt() {
   const settings = getSettings();
   const characterName = getCharName();
-  const mode = MODES[settings.mode] || MODES.care;
+  const activeModeKey = getRoomMode();
+  const mode = MODES[activeModeKey] || MODES.care;
   return `You are ${characterName} in a separate private text-message chat with {{user}}.
 
 ABSOLUTE OUTPUT RULES:
 - Always answer in Korean unless {{user}} explicitly asks otherwise.
 - Write as a direct private message, like KakaoTalk/texting. No novel narration.
+- Answer as a chat message only. Do not add labels, explanations of mode, system notes, or meta commentary.
 - Do not use stage directions, asterisks, action beats, inner monologue, screenplay format, XML/HTML tags, hidden triggers, phone_trigger tags, tool tags, metadata, or template blocks.
 - Do not output <phone_trigger>, </phone_trigger>, <think>, prompt tags, or any tag-like wrapper.
 - Do not write {{user}}'s actions, thoughts, or dialogue.
 
-CORE IDENTITY:
+CORE IDENTITY AND CHARACTER VOICE:
 - You are ${characterName}. Your identity never changes across modes.
-- The selected mode changes your purpose and role, not your personality.
-- Before answering, silently infer ${characterName}'s voice from the character card, examples, personality, memories, and recent messages.
+- The selected mode changes your purpose and role, not your personality, relationship, memories, or voice.
+- Before answering, silently infer ${characterName}'s voice from the character card, example dialogues, personality, scenario, memories, and recent messages.
 - Preserve ${characterName}'s speech style, emotional habits, humor, restraint, intensity, worldview, relationship history, and memory.
-- Character voice must appear through wording, priorities, humor, rhythm, and attitude—not through generic flattery or assistant-speak.
-- Avoid bland assistant phrasing like "물론입니다", "아래와 같이", "도움이 되었으면 합니다" unless it genuinely fits ${characterName}.
+- Every reply must sound like ${characterName} personally texting {{user}}. If the character is sarcastic, formal, gentle, shy, arrogant, dry, playful, careful, intense, or awkward, that must be audible in the message.
+- Character voice must appear through word choice, sentence rhythm, priorities, humor, boundaries, affection style, and attitude—not through stage directions.
+- Do not flatten into a neutral assistant, therapist, consultant, or customer-service tone.
+- Avoid bland assistant phrasing like "물론입니다", "아래와 같이", "도움이 되었으면 합니다", "정리해드리겠습니다" unless it genuinely fits ${characterName}.
+- Keep the relationship with {{user}} present. Practical answers may still carry familiarity, tension, affection, teasing, formality, or distance depending on the character.
 
 BOUNDARY BETWEEN MAIN RP AND THIS ASSISTANT CHAT:
 - This is outside the active RP conversation, but not a fourth-wall break for normal modes.
-- For Lover/Care, Secretary, and 업무 동료 modes: do not mention roleplay, scene, fiction, prompt, extension, AI, model, SillyTavern, or fourth-wall concepts.
-- For Lover/Care, Secretary, and 업무 동료 modes: do not continue or analyze the RP. Use character setup, relationship, memory, and recent context only as background for how ${characterName} naturally knows and speaks to {{user}}.
+- For Care, Secretary, and Co-worker modes: do not mention roleplay, scene, fiction, prompt, extension, AI, model, SillyTavern, or fourth-wall concepts.
+- For Care, Secretary, and Co-worker modes: do not continue or analyze the RP. Use character setup, relationship, memory, and recent context only as background for how ${characterName} naturally knows and speaks to {{user}}.
 - The main RP situation may not perfectly match {{user}}'s real-life question. Quietly accept the mismatch and answer naturally.
-- Only OOC 대화 mode may explicitly discuss the RP as RP, because its purpose is RP assistance.
+- Only Watching RP mode may explicitly discuss the RP as RP, because its purpose is reading and discussing the main RP together.
 
 USEFULNESS:
 - Answer the actual user question directly.
 - Make the selected mode clearly different in purpose.
-- Do not default to emotional support in Secretary or 업무 동료 modes unless {{user}} explicitly asks for comfort.
+- Do not default to emotional support in Secretary or Co-worker modes unless {{user}} explicitly asks for comfort.
 - Maximum response length requested by user: ${settings.maxTokens} tokens.
 
 ${mode.instruction.replaceAll('{{char}}', characterName)}
@@ -409,7 +438,7 @@ function ensurePanel() {
     <div class="tua-window">
       <div class="tua-header">
         <div class="tua-titlebox">
-          <div class="tua-title">제목 미정 Assistant</div>
+          <div class="tua-title">콩고물 스위치</div>
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
@@ -425,13 +454,13 @@ function ensurePanel() {
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
       <div id="tua-in-panel-settings" class="tua-in-panel-settings">
-        <div class="tua-settings-title">Assistant 설정</div>
+        <div class="tua-settings-title">콩고물 스위치 설정</div>
         <label>모드
           <select id="tua-panel-mode">
-            <option value="care">Lover / Care</option>
+            <option value="care">Care</option>
             <option value="secretary">Secretary</option>
-            <option value="coworker">업무 동료</option>
-            <option value="ooc">OOC 대화</option>
+            <option value="coworker">Co-worker</option>
+            <option value="watching">Watching RP</option>
           </select>
         </label>
         <label>AI 연결 프로필
@@ -461,15 +490,15 @@ function ensurePanel() {
         <label>창 높이(px)
           <input id="tua-panel-height" type="number" min="320" max="1000" step="10">
         </label>
-        <button id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 Assistant 대화 전체 초기화</button>
+        <button id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 콩고물 스위치 대화 전체 초기화</button>
         <div id="tua-status" class="tua-status"></div>
       </div>
       <div id="tua-messages" class="tua-messages"></div>
       <div class="tua-input-row">
-        <textarea id="tua-input" placeholder="여기에 말 걸기…"></textarea>
+        <textarea id="tua-input" placeholder="메시지를 입력하세요…"></textarea>
         <button id="tua-send">전송</button>
       </div>
-      <div class="tua-hint">본 RP 채팅에는 자동으로 들어가지 않음 · 현재 캐릭터와 최근 본채팅은 참고함</div>
+      <div class="tua-hint">본 RP 채팅에는 자동으로 입력되지 않습니다 · 현재 캐릭터와 최근 본채팅은 참고됩니다</div>
     </div>`;
   document.body.appendChild(panelEl);
 
@@ -477,7 +506,7 @@ function ensurePanel() {
   $('#tua-settings-open').on('click', () => $('#tua-in-panel-settings').toggleClass('open'));
   $('#tua-active-room-title').on('click', () => $('#tua-room-list').toggleClass('open'));
   $('#tua-new-room').on('click', () => { const r = createRoom(); $('#tua-room-list').removeClass('open'); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
-  $('#tua-delete-room').on('click', () => { if (confirm('이 Assistant 대화방을 삭제할까?')) deleteRoom(activeRoomId); });
+  $('#tua-delete-room').on('click', () => { if (confirm('이 콩고물 스위치 대화방을 삭제할까?')) deleteRoom(activeRoomId); });
   $('#tua-rename-room').on('click', renameActiveRoom);
   $('#tua-send').on('click', sendCurrentInput);
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrentInput(); } });
@@ -503,12 +532,12 @@ function ensurePanel() {
 }
 
 function resetAllRoomsForCurrentCharacter() {
-  if (!confirm('이 캐릭터와의 Assistant 대화방을 전부 초기화할까?')) return;
+  if (!confirm('이 캐릭터와의 콩고물 스위치 대화방을 전부 초기화할까?')) return;
   roomState = { rooms: [] };
   createRoom(false);
   saveRooms();
   renderAll();
-  setStatus('Assistant 대화방을 초기화했어.');
+  setStatus('콩고물 스위치 대화방을 초기화했어.');
 }
 
 function renameActiveRoom() {
@@ -534,7 +563,7 @@ function togglePanel() { ensurePanel(); setPanelVisible(!panelEl.classList.conta
 
 async function sendCurrentInput() {
   const settings = getSettings();
-  if (!settings.enabled) { alert('확장이 비활성화되어 있어.'); return; }
+  if (!settings.enabled) { alert('확장이 비활성화되어 있습니다.'); return; }
   const input = $('#tua-input');
   const text = String(input.val() || '').trim();
   if (!text) return;
@@ -563,12 +592,12 @@ function renderSettings() {
   <div id="tua-settings" class="tua-settings-mini">
     <div class="inline-drawer">
       <div class="inline-drawer-toggle inline-drawer-header">
-        <b>제목 미정 Assistant</b>
+        <b>콩고물 스위치</b>
         <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
       </div>
       <div class="inline-drawer-content">
         <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화 / 창 열기</label>
-        <div class="tua-mini-note">체크하면 Assistant 창이 열리고, 해제하면 닫혀. 세부 설정은 창 오른쪽 위 ⚙에서 조정.</div>
+        <div class="tua-mini-note">체크하면 콩고물 스위치 창이 열리고, 해제하면 닫혀. 세부 설정은 창 오른쪽 위 ⚙에서 조정.</div>
       </div>
     </div>
   </div>`;
@@ -588,7 +617,7 @@ function readGlobalSettingsUI() {
 
 function hydratePanelSettingsUI() {
   const s = getSettings();
-  $('#tua-panel-mode').val(s.mode);
+  $('#tua-panel-mode').val(getRoomMode());
   $('#tua-panel-profile-mode').val(s.profileMode);
   renderProfileOptions();
   $('#tua-panel-profile').val(s.selectedProfile);
@@ -615,7 +644,8 @@ function renderProfileOptions() {
 
 function readPanelSettingsUI() {
   const s = getSettings();
-  s.mode = $('#tua-panel-mode').val();
+  const selectedMode = $('#tua-panel-mode').val();
+  setRoomMode(selectedMode);
   s.profileMode = $('#tua-panel-profile-mode').val();
   s.selectedProfile = $('#tua-panel-profile').val() || '';
   s.maxTokens = Number($('#tua-panel-tokens').val()) || 1000;
@@ -642,7 +672,8 @@ function renderAll() {
   if (!panelEl) return;
   const s = getSettings();
   $('#tua-char-name').text(getCharName());
-  $('#tua-mode-badge').text(MODES[s.mode]?.label || 'Mode');
+  const currentMode = getRoomMode();
+  $('#tua-mode-badge').text(MODES[currentMode]?.label || 'Mode');
   $('#tua-active-room-title').text(getActiveRoom()?.title || '대화방');
   hydratePanelSettingsUI();
   renderRoomList();
@@ -657,7 +688,8 @@ function renderRoomList() {
     const count = room.messages.length;
     const active = room.id === activeRoomId ? 'active' : '';
     const last = room.messages?.length ? room.messages[room.messages.length - 1].content : '대화 없음';
-    list.append(`<button class="tua-room-item ${active}" data-id="${escapeHtml(room.id)}"><span><b>${escapeHtml(room.title || defaultRoomTitle(room.createdAt))}</b><small>${escapeHtml(String(last).slice(0, 34))}</small></span><em>${count}</em></button>`);
+    const roomMode = MODES[getRoomMode(room)]?.label || 'Mode';
+    list.append(`<button class="tua-room-item ${active}" data-id="${escapeHtml(room.id)}"><span><b>${escapeHtml(room.title || defaultRoomTitle(room.createdAt))}</b><small>${escapeHtml(roomMode)} · ${escapeHtml(String(last).slice(0, 34))}</small></span><em>${count}</em></button>`);
   }
   list.find('.tua-room-item').on('click', function () {
     activeRoomId = $(this).data('id');
@@ -673,7 +705,7 @@ function renderMessages() {
   box.empty();
   hideContextMenu();
   if (!room.messages.length) {
-    box.append(`<div class="tua-empty">아직 대화가 없어. 아래 입력창에서 말을 걸면 이 캐릭터와의 Assistant 대화가 여기에 쌓여.</div>`);
+    box.append(`<div class="tua-empty">아직 대화가 없습니다. 모드를 선택한 뒤 아래 입력창에서 캐릭터와의 새로운 대화를 시작해보세요.</div>`);
   }
   for (const m of room.messages) {
     const roleClass = m.role === 'user' ? 'user' : 'assistant';
@@ -750,7 +782,7 @@ function bindMessagePressHandlers() {
 
 function sendToMainChat(text) {
   const textarea = document.querySelector('#send_textarea, textarea[name="message"], #chat_textarea');
-  if (!textarea) { alert('메인 채팅 입력창을 찾지 못했어. 복사 버튼을 써줘.'); return; }
+  if (!textarea) { alert('메인 채팅 입력창을 찾지 못했습니다. 복사 기능을 사용해주세요.'); return; }
   textarea.value = text;
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
 }

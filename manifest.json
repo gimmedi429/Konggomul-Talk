@@ -1,11 +1,11 @@
 {
-  "display_name": "제목 미정 Assistant",
+  "display_name": "콩고물 스위치",
   "loading_order": 50,
   "requires": [],
   "optional": [],
   "js": "index.js",
   "css": "style.css",
   "author": "ChatGPT for Nunu",
-  "version": "0.7.0",
-  "homePage": "https://github.com/gimmedi429/title-undecided-assistant"
+  "version": "1.0.0",
+  "homePage": "https://github.com/gimmedi429/konggomul-switch"
 }
