@@ -246,15 +246,20 @@
 #tua-input {
   flex: 1;
   min-height: 36px;
-  max-height: 118px;
-  resize: vertical;
-  border: 1px solid rgba(159, 122, 54, .24);
+  height: 36px;
+  max-height: 96px;
+  resize: none;
+  overflow-y: auto;
+  box-sizing: border-box;
+  border: 1px solid rgba(159, 122, 54, .26);
   outline: 0;
-  border-radius: 14px;
-  padding: 8px 10px;
-  font-size: var(--tua-font-size);
+  border-radius: 15px;
+  padding: 8px 11px;
+  line-height: 1.35;
+  font-size: calc(var(--tua-font-size) - 1px);
   color: var(--tua-text);
-  background: #fffdf6;
+  background: #fffdf8;
+  box-shadow: 0 1px 0 rgba(255,255,255,.85) inset;
 }
 #tua-input::placeholder { color: #b39970; }
 #tua-send {
@@ -382,4 +387,34 @@
   font-size: 16px;
   line-height: 1;
   border-width: 1px;
+}
+
+
+/* v1.4 input repair + stronger compact messenger bar */
+.tua-input-row {
+  gap: 6px !important;
+  padding: 7px 9px !important;
+  align-items: flex-end !important;
+  background: rgba(255, 250, 240, .82) !important;
+}
+#tua-input {
+  min-height: 36px !important;
+  height: 36px;
+  max-height: 96px !important;
+  resize: none !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  padding: 8px 11px !important;
+  line-height: 1.35 !important;
+  border-radius: 15px !important;
+  background: #fffdf8 !important;
+  font-size: calc(var(--tua-font-size) - 1px) !important;
+}
+#tua-send {
+  flex: 0 0 32px !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  align-self: flex-end !important;
+  font-size: 16px !important;
 }
