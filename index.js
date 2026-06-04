@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v3.2
+ * 🐶콩고물 토오크 v3.3
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -59,12 +59,9 @@ const DEFAULT_SETTINGS = Object.freeze({
   panelHeight: 560,
   panelLeft: null,
   panelTop: null,
-  apiMode: 'current',
-  openaiBaseUrl: '',
-  openaiApiKey: '',
-  openaiModel: '',
-  geminiApiKey: '',
-  geminiModel: 'gemini-2.5-flash',
+  profileMode: 'current',
+  selectedProfile: '',
+  cachedProfiles: [],
   sendToMainEnabled: true
 });
 
@@ -88,9 +85,6 @@ function getSettings() {
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
     if (!Object.hasOwn(settings[MODULE_NAME], k)) settings[MODULE_NAME][k] = v;
   }
-  // v3.2: Connection Profile switching through /profile changed the main ST profile.
-  // Migrate old profile mode to current-safe mode. Use direct API settings for a separate model.
-  if (settings[MODULE_NAME].profileMode === 'profile') settings[MODULE_NAME].apiMode = 'current';
   return settings[MODULE_NAME];
 }
 
@@ -403,33 +397,63 @@ async function runSlashCommand(command) {
       const result = await context.executeSlashCommand(command);
       return result?.pipe ?? result?.message ?? result?.text ?? String(result ?? '');
     }
-    const input = document.querySelector('#send_textarea, textarea[name="send_textarea"], textarea');
-    const send = document.querySelector('#send_but, #send_button, .send_button');
-    if (input && send) {
-      const old = input.value;
-      input.value = command;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      send.click();
-      input.value = old;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      return '';
-    }
   } catch (e) {
-    console.warn('[TUA] slash command failed', command, e);
+    console.warn('[Konggomul] slash command failed', command, e);
+    throw e;
   }
-  return '';
+  throw new Error('SillyTavern slash command API를 찾을 수 없습니다. Connection Profile 선택 기능을 사용할 수 없습니다.');
+}
+
+function cleanProfileName(raw) {
+  return String(raw || '')
+    .replace(/^[-*•\s]+/, '')
+    .replace(/^`|`$/g, '')
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\.$/, '')
+    .trim();
 }
 
 function parseProfileList(raw) {
   const text = String(raw || '');
-  return text
+  return [...new Set(text
     .split(/\r?\n|,/) 
-    .map(x => x.replace(/^[-*•\s]+/, '').trim())
-    .map(x => x.replace(/^`|`$/g, '').trim())
+    .map(cleanProfileName)
     .filter(Boolean)
-    .filter(x => !/profile/i.test(x) || !/list/i.test(x))
-    .slice(0, 100);
+    .filter(x => !/^available/i.test(x))
+    .filter(x => !/^current/i.test(x))
+    .filter(x => !/profile-list/i.test(x))
+    .filter(x => !/프로필\s*목록/.test(x))
+    .slice(0, 100))];
 }
+
+function parseCurrentProfileName(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return '';
+  const lines = text.split(/\r?\n/).map(cleanProfileName).filter(Boolean);
+  const patterns = [
+    /current\s+(?:connection\s+)?profile\s*[:：]\s*(.+)$/i,
+    /active\s+(?:connection\s+)?profile\s*[:：]\s*(.+)$/i,
+    /selected\s+(?:connection\s+)?profile\s*[:：]\s*(.+)$/i,
+    /현재\s*(?:연결\s*)?프로필\s*[:：]\s*(.+)$/i,
+    /선택(?:된)?\s*(?:연결\s*)?프로필\s*[:：]\s*(.+)$/i,
+  ];
+  for (const line of lines) {
+    for (const re of patterns) {
+      const m = line.match(re);
+      if (m?.[1]) return cleanProfileName(m[1]);
+    }
+  }
+  // Some ST builds return only the active profile name.
+  if (lines.length === 1) return cleanProfileName(lines[0]);
+  return cleanProfileName(lines.at(-1));
+}
+
+function profileCommand(name) {
+  const safe = String(name || '').replace(/"/g, '\\"');
+  return `/profile "${safe}"`;
+}
+
+function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 async function refreshProfiles() {
   const s = getSettings();
@@ -442,26 +466,47 @@ async function refreshProfiles() {
     setStatus(names.length ? `프로필 ${names.length}개를 불러왔습니다.` : '프로필 목록이 비어 있음');
   } catch (e) {
     setStatus('프로필 목록 불러오기 실패');
-    console.warn('[TUA] profile-list failed', e);
+    console.warn('[Konggomul] profile-list failed', e);
   }
 }
 
 async function getCurrentProfileName() {
-  try { return String(await runSlashCommand('/profile')).trim(); }
-  catch { return ''; }
+  try {
+    const raw = await runSlashCommand('/profile');
+    return parseCurrentProfileName(raw);
+  }
+  catch (e) {
+    console.warn('[Konggomul] get current profile failed', e);
+    return '';
+  }
 }
 
 async function useSelectedProfileIfNeeded(callback) {
   const s = getSettings();
   if (s.profileMode !== 'profile' || !s.selectedProfile) return await callback();
-  let previous = '';
-  try { previous = await getCurrentProfileName(); } catch {}
+
+  const selected = String(s.selectedProfile || '').trim();
+  const previous = await getCurrentProfileName();
+
+  if (!previous) {
+    throw new Error('현재 연결 프로필을 확인할 수 없어 저장된 프로필로 전환하지 않았습니다. 본채팅 프로필 보호를 위해 생성을 중단합니다.');
+  }
+
+  if (previous === selected) return await callback();
+
   try {
-    await runSlashCommand(`/profile ${s.selectedProfile}`);
+    setStatus(`콩고물 토오크에서만 ${selected} 프로필로 생성 중...`);
+    await runSlashCommand(profileCommand(selected));
+    await wait(120);
     return await callback();
   } finally {
-    if (previous && previous !== s.selectedProfile) {
-      try { await runSlashCommand(`/profile ${previous}`); } catch (e) { console.warn('[TUA] profile restore failed', e); }
+    try {
+      await runSlashCommand(profileCommand(previous));
+      await wait(120);
+      setStatus(`본채팅 연결 프로필을 ${previous}(으)로 복구했습니다.`);
+    } catch (e) {
+      console.error('[Konggomul] profile restore failed', e);
+      setStatus(`프로필 복구 실패: 본채팅 연결 프로필을 확인해 주세요.`);
     }
   }
 }
@@ -477,85 +522,21 @@ function sanitizeAssistantReply(text) {
   return out || '(빈 응답)';
 }
 
-function normalizeOpenAIBaseUrl(base) {
-  let url = String(base || '').trim().replace(/\/+$/, '');
-  if (!url) return '';
-  if (/\/chat\/completions$/i.test(url)) return url;
-  return url + '/chat/completions';
-}
-
-function promptToText(messages) {
-  return messages.map(m => `${m.role === 'user' ? '{{user}}' : getCharName()}: ${m.content}`).join('\n');
-}
-
-async function callOpenAICompatible(systemPrompt, promptMessages) {
-  const s = getSettings();
-  const url = normalizeOpenAIBaseUrl(s.openaiBaseUrl);
-  if (!url || !s.openaiApiKey || !s.openaiModel) throw new Error('독립 OpenAI-compatible 설정이 비어 있습니다.');
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${s.openaiApiKey}`
-    },
-    body: JSON.stringify({
-      model: s.openaiModel,
-      messages: [{ role: 'system', content: systemPrompt }, ...promptMessages],
-      max_tokens: s.maxTokens,
-      temperature: 0.9
-    })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || data?.message || `OpenAI-compatible API 오류 ${res.status}`);
-  return data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.text ?? '';
-}
-
-async function callGemini(systemPrompt, promptMessages) {
-  const s = getSettings();
-  const model = String(s.geminiModel || 'gemini-2.5-flash').trim();
-  const key = String(s.geminiApiKey || '').trim();
-  if (!key || !model) throw new Error('독립 Gemini 설정이 비어 있습니다.');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-  const contents = [];
-  for (const m of promptMessages) {
-    contents.push({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: String(m.content || '') }]
-    });
-  }
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      contents,
-      generationConfig: { maxOutputTokens: s.maxTokens, temperature: 0.9 }
-    })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || `Gemini API 오류 ${res.status}`);
-  return data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-}
-
 async function generateAssistantReply(userText) {
   const context = ctx();
   const systemPrompt = buildSystemPrompt();
   const prompt = buildPromptMessages(userText);
   const settings = getSettings();
-
-  // v3.2: Never switch SillyTavern Connection Profiles here. Switching profiles changes the main RP connection.
-  // Use current ST connection, or a separate direct API configured inside Konggomul Talk.
-  if (settings.apiMode === 'openai') return await callOpenAICompatible(systemPrompt, prompt);
-  if (settings.apiMode === 'gemini') return await callGemini(systemPrompt, prompt);
-
-  if (typeof context.generateRaw === 'function') {
-    return await context.generateRaw({ systemPrompt, prompt, maxTokens: settings.maxTokens, max_tokens: settings.maxTokens });
-  }
-  if (typeof context.generateQuietPrompt === 'function') {
-    const merged = `${systemPrompt}\n\nCURRENT ASSISTANT CONVERSATION:\n${promptToText(prompt)}\n\nAnswer now.`;
-    return await context.generateQuietPrompt({ quietPrompt: merged, maxTokens: settings.maxTokens, max_tokens: settings.maxTokens });
-  }
-  throw new Error('SillyTavern generation function not found.');
+  return await useSelectedProfileIfNeeded(async () => {
+    if (typeof context.generateRaw === 'function') {
+      return await context.generateRaw({ systemPrompt, prompt, maxTokens: settings.maxTokens, max_tokens: settings.maxTokens });
+    }
+    if (typeof context.generateQuietPrompt === 'function') {
+      const merged = `${systemPrompt}\n\nCURRENT ASSISTANT CONVERSATION:\n${prompt.map(m => `${m.role}: ${m.content}`).join('\n')}\n\nAnswer now.`;
+      return await context.generateQuietPrompt({ quietPrompt: merged, maxTokens: settings.maxTokens, max_tokens: settings.maxTokens });
+    }
+    throw new Error('SillyTavern generation function not found.');
+  });
 }
 
 function ensurePanel() {
@@ -591,33 +572,18 @@ function ensurePanel() {
             <option value="watching">Watching RP</option>
           </select>
         </label>
-        <label>AI 연결 방식
-          <select id="tua-panel-api-mode">
-            <option value="current">현재 SillyTavern 연결 사용</option>
-            <option value="openai">독립 OpenAI-compatible / nanoGPT</option>
-            <option value="gemini">독립 Gemini API</option>
-          </select>
+        <label>AI 연결 프로필
+          <div class="tua-profile-row">
+            <select id="tua-panel-profile-mode">
+              <option value="current">현재 선택된 ST 연결</option>
+              <option value="profile">저장된 Connection Profile 선택</option>
+            </select>
+            <button type="button" id="tua-refresh-profiles" title="프로필 목록 새로고침">↻</button>
+          </div>
         </label>
-        <div id="tua-openai-settings" class="tua-api-settings">
-          <label>OpenAI-compatible Base URL
-            <input id="tua-panel-openai-base" type="text" placeholder="예: https://api.openai.com/v1 또는 nanoGPT endpoint">
-          </label>
-          <label>API Key
-            <input id="tua-panel-openai-key" type="password" autocomplete="off" placeholder="확장 전용 API 키">
-          </label>
-          <label>Model
-            <input id="tua-panel-openai-model" type="text" placeholder="예: glm-4.5 / gpt-4.1-mini 등">
-          </label>
-        </div>
-        <div id="tua-gemini-settings" class="tua-api-settings">
-          <label>Gemini API Key
-            <input id="tua-panel-gemini-key" type="password" autocomplete="off" placeholder="확장 전용 Gemini 키">
-          </label>
-          <label>Gemini Model
-            <input id="tua-panel-gemini-model" type="text" placeholder="gemini-2.5-flash">
-          </label>
-        </div>
-        <div class="tua-api-note">저장된 ST Connection Profile을 직접 바꾸는 방식은 본채팅 프로필까지 변경될 수 있어 제거했습니다. 별도 모델은 독립 API로 연결해 주세요.</div>
+        <label id="tua-profile-select-wrap">프로필 선택
+          <select id="tua-panel-profile"></select>
+        </label>
         <label>최대 응답 토큰 수
           <input id="tua-panel-tokens" type="number" min="100" max="8000" step="50">
         </label>
@@ -656,7 +622,8 @@ function ensurePanel() {
   $('#tua-send').on('click', (e) => { e.preventDefault(); e.stopPropagation(); sendCurrentInput(); });
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
-  $('#tua-panel-mode,#tua-panel-api-mode,#tua-panel-openai-base,#tua-panel-openai-key,#tua-panel-openai-model,#tua-panel-gemini-key,#tua-panel-gemini-model,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-width,#tua-panel-height').on('change input', readPanelSettingsUI);
+  $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-width,#tua-panel-height').on('change input', readPanelSettingsUI);
+  $('#tua-refresh-profiles').on('click', refreshProfiles);
   $('#tua-reset-all-rooms').on('click', resetAllRoomsForCurrentCharacter);
 
   makePanelDraggable();
@@ -862,19 +829,16 @@ function readGlobalSettingsUI() {
 function hydratePanelSettingsUI() {
   const s = getSettings();
   $('#tua-panel-mode').val(getRoomMode());
-  $('#tua-panel-api-mode').val(s.apiMode || 'current');
-  $('#tua-panel-openai-base').val(s.openaiBaseUrl || '');
-  $('#tua-panel-openai-key').val(s.openaiApiKey || '');
-  $('#tua-panel-openai-model').val(s.openaiModel || '');
-  $('#tua-panel-gemini-key').val(s.geminiApiKey || '');
-  $('#tua-panel-gemini-model').val(s.geminiModel || 'gemini-2.5-flash');
+  $('#tua-panel-profile-mode').val(s.profileMode);
+  renderProfileOptions();
+  $('#tua-panel-profile').val(s.selectedProfile);
   $('#tua-panel-tokens').val(s.maxTokens);
   $('#tua-panel-recent').val(s.recentMessages);
   $('#tua-panel-font').val(s.fontSize);
   $('#tua-panel-voice-note').val(getVoiceNote());
   $('#tua-panel-width').val(s.panelWidth);
   $('#tua-panel-height').val(s.panelHeight);
-  updateApiSettingsVisibility();
+  $('#tua-profile-select-wrap').toggle(s.profileMode === 'profile');
 }
 
 function renderProfileOptions() {
@@ -894,12 +858,8 @@ function readPanelSettingsUI() {
   const s = getSettings();
   const selectedMode = $('#tua-panel-mode').val();
   setRoomMode(selectedMode);
-  s.apiMode = $('#tua-panel-api-mode').val() || 'current';
-  s.openaiBaseUrl = $('#tua-panel-openai-base').val() || '';
-  s.openaiApiKey = $('#tua-panel-openai-key').val() || '';
-  s.openaiModel = $('#tua-panel-openai-model').val() || '';
-  s.geminiApiKey = $('#tua-panel-gemini-key').val() || '';
-  s.geminiModel = $('#tua-panel-gemini-model').val() || 'gemini-2.5-flash';
+  s.profileMode = $('#tua-panel-profile-mode').val();
+  s.selectedProfile = $('#tua-panel-profile').val() || '';
   s.maxTokens = Number($('#tua-panel-tokens').val()) || 1000;
   s.recentMessages = Number($('#tua-panel-recent').val()) || 10;
   s.fontSize = Number($('#tua-panel-font').val()) || 14;
@@ -909,7 +869,7 @@ function readPanelSettingsUI() {
   saveSettings();
   applyVisualSettings();
   renderAll();
-  updateApiSettingsVisibility();
+  $('#tua-profile-select-wrap').toggle(s.profileMode === 'profile');
 }
 
 function applyVisualSettings() {
@@ -918,12 +878,6 @@ function applyVisualSettings() {
   document.documentElement.style.setProperty('--tua-panel-width', `${s.panelWidth}px`);
   document.documentElement.style.setProperty('--tua-panel-height', `${s.panelHeight}px`);
   applyPanelPosition();
-}
-
-function updateApiSettingsVisibility() {
-  const mode = getSettings().apiMode || 'current';
-  $('#tua-openai-settings').toggle(mode === 'openai');
-  $('#tua-gemini-settings').toggle(mode === 'gemini');
 }
 
 function setStatus(text) { $('#tua-status').text(text || ''); }
