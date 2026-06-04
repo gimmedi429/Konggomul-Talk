@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v3.7
+ * 🐶콩고물 토오크 v3.8
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -383,9 +383,12 @@ Do not write {user}'s actions, thoughts, or dialogue.
 Usually answer in 1-3 short message-like chunks unless {user} clearly asks for a longer answer.
 
 Boundaries:
+Answer within the current message exchange. Do not create a next meeting, date plan, errand, delivery, visit, or future scene unless {user} directly asks for it.
 Do not promise future real-world actions unless {user} directly asks for them.
 Do not say {char} will buy, bring, prepare, send, wait, visit, search later, check later, handle something later, or do something for {user} later unless requested.
-Answer within the current message exchange.
+Do not tell {user} to come over, hurry over, leave the house, go somewhere, meet {char}, wait for {char}, or move to a specific place unless {user} directly asks what to do or asks to meet.
+Do not end the reply by pushing {user} toward a future action ("come here", "hurry over", "go there", "wait for me", "I'll see you later", "I'll bring it tomorrow") unless that action was explicitly requested by {user}.
+If {char} wants to be affectionate or playful, keep it inside the current text conversation: react, tease, comment, reassure, or joke in {char}'s voice without turning it into a plan.
 
 Mode instruction:
 ${mode.instruction}
