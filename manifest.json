@@ -1,11 +1,11 @@
 {
-  "display_name": "🐶콩고물 토오크",
+  "display_name": "🐶Konggomul-Talk",
   "loading_order": 50,
   "requires": [],
   "optional": [],
   "js": "index.js",
   "css": "style.css",
   "author": "ChatGPT for Nunu",
-  "version": "1.1.0",
-  "homePage": "https://github.com/gimmedi429/konggomul-tooook"
+  "version": "1.2.0",
+  "homePage": "https://github.com/gimmedi429/konggomul-talk"
 }

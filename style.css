@@ -238,26 +238,40 @@
 
 .tua-input-row {
   display: flex;
-  gap: 9px;
-  padding: 11px;
+  gap: 7px;
+  padding: 9px 10px;
   border-top: 1px solid rgba(159, 122, 54, .24);
   background: rgba(255, 250, 240, .7);
 }
 #tua-input {
   flex: 1;
-  min-height: 38px;
+  min-height: 36px;
   max-height: 118px;
   resize: vertical;
   border: 1px solid rgba(159, 122, 54, .24);
   outline: 0;
-  border-radius: 15px;
-  padding: 9px 11px;
+  border-radius: 14px;
+  padding: 8px 10px;
   font-size: var(--tua-font-size);
   color: var(--tua-text);
   background: #fffdf6;
 }
 #tua-input::placeholder { color: #b39970; }
-#tua-send { padding: 0 12px; background: #e9c77d; color: #18110a; font-weight: 800; font-size: calc(var(--tua-font-size) - 1px); min-width: 54px; }
+#tua-send {
+  flex: 0 0 38px;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9c77d;
+  color: #18110a;
+  font-weight: 800;
+  font-size: 17px;
+  border-radius: 50%;
+}
 
 .tua-settings-mini .inline-drawer-content { padding-top: 8px; }
 .tua-settings-mini .checkbox_label { display: flex; align-items: center; gap: 6px; margin: 8px 0; }

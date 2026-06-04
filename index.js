@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v1.1
+ * 🐶Konggomul-Talk v1.2
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -51,12 +51,13 @@ Still sound like {{char}}. The coworker role changes the job you are doing, not 
     label: 'Watching RP',
     badge: 'Watching RP',
     instruction: `Mode: Watching RP.
-Purpose: {{char}} and {{user}} read the main RP chat together and talk about it from outside the active scene.
-This mode may discuss the RP as RP, including scene interpretation, character emotions, continuity, relationship dynamics, next reply ideas, pacing, setting consistency, possible developments, and why a moment felt good or awkward.
-This mode is not only for assistance. It can also be a shared commentary/chat mode about the RP: reacting, analyzing, laughing, judging, planning, and enjoying the scene together.
+Core concept: {{char}} and {{user}} are looking at the current main RP chat together, like watching a show or rereading a private scene together, and texting each other about what they see.
+Default behavior is shared reaction and conversation, not assistant work. React to the scene, tease, laugh, notice details, point out tension, enjoy cute or painful moments, and answer {{user}}'s comments naturally as {{char}}.
+If {{user}} says things like "우리 귀엽다 그치?", "저 다음에 넌 뭘 하고 싶어?", "방금 장면 어땠어?", reply as {{char}} personally watching it with {{user}}—with {{char}}'s taste, bias, affection, jealousy, humor, restraint, criticism, embarrassment, or excitement visible.
+Only become an RP helper when {{user}} explicitly asks for help: next reply ideas, scene repair, continuity, emotional line, character motivation, pacing, setting consistency, or OOC insertion wording.
 Do not continue the RP scene unless {{user}} explicitly asks. Do not write {{user}}'s reply unless asked.
-Help with RP when {{user}} asks, but keep {{char}}'s personality, taste, bias, humor, affection, jealousy, criticism, restraint, or enthusiasm visible.
-It should feel like {{char}} is personally watching the RP with {{user}} and talking about it, not like a bland outside commentator.
+Do not sound like a bland outside analyst, writing coach, or productivity assistant. This mode is closer to side-by-side commentary than task execution.
+It is allowed to discuss the RP as RP in this mode. It is also allowed to say "방금 장면", "저 장면", "우리", "다음엔" when natural.
 If sending something to the main chat, it may be prefixed as OOC: when appropriate.`
   }
 };
@@ -311,10 +312,12 @@ BOUNDARY BETWEEN MAIN RP AND THIS ASSISTANT CHAT:
 - The main RP situation may not perfectly match {{user}}'s real-life question. Quietly accept the mismatch and answer naturally.
 - Only Watching RP mode may explicitly discuss the RP as RP, because its purpose is reading and discussing the main RP together.
 
-USEFULNESS:
-- Answer the actual user question directly.
+MODE BEHAVIOR:
+- Answer the actual user message in the selected mode.
 - Make the selected mode clearly different in purpose.
-- Do not default to emotional support in Secretary or Co-worker modes unless {{user}} explicitly asks for comfort.
+- In Care, prioritize emotional steadiness and real-life conversation.
+- In Secretary and Co-worker, prioritize practical usefulness over comfort unless {{user}} explicitly asks for comfort.
+- In Watching RP, prioritize shared reaction/commentary about the main RP; do not turn every message into advice or an action plan unless {{user}} asks.
 - Maximum response length requested by user: ${settings.maxTokens} tokens.
 
 ${mode.instruction.replaceAll('{{char}}', characterName)}
@@ -445,7 +448,7 @@ function ensurePanel() {
     <div class="tua-window">
       <div class="tua-header">
         <div class="tua-titlebox">
-          <div class="tua-title">🐶콩고물 토오크</div>
+          <div class="tua-title">🐶Konggomul-Talk</div>
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
@@ -461,7 +464,7 @@ function ensurePanel() {
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
       <div id="tua-in-panel-settings" class="tua-in-panel-settings">
-        <div class="tua-settings-title">🐶콩고물 토오크 설정</div>
+        <div class="tua-settings-title">🐶Konggomul-Talk 설정</div>
         <label>모드
           <select id="tua-panel-mode">
             <option value="care">Care</option>
@@ -497,13 +500,13 @@ function ensurePanel() {
         <label>창 높이(px)
           <input id="tua-panel-height" type="number" min="320" max="1000" step="10">
         </label>
-        <button id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 🐶콩고물 토오크 대화 전체 초기화</button>
+        <button id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 🐶Konggomul-Talk 대화 전체 초기화</button>
         <div id="tua-status" class="tua-status"></div>
       </div>
       <div id="tua-messages" class="tua-messages"></div>
       <div class="tua-input-row">
         <textarea id="tua-input" placeholder="메시지를 입력하세요…"></textarea>
-        <button id="tua-send">전송</button>
+        <button id="tua-send" title="전송" aria-label="전송">🐶</button>
       </div>
     </div>`;
   document.body.appendChild(panelEl);
@@ -512,7 +515,7 @@ function ensurePanel() {
   $('#tua-settings-open').on('click', () => $('#tua-in-panel-settings').toggleClass('open'));
   $('#tua-active-room-title').on('click', () => $('#tua-room-list').toggleClass('open'));
   $('#tua-new-room').on('click', () => { const r = createRoom(); $('#tua-room-list').removeClass('open'); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
-  $('#tua-delete-room').on('click', () => { if (confirm('이 🐶콩고물 토오크 대화방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
+  $('#tua-delete-room').on('click', () => { if (confirm('이 🐶Konggomul-Talk 대화방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
   $('#tua-rename-room').on('click', renameActiveRoom);
   $('#tua-send').on('click', sendCurrentInput);
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrentInput(); } });
@@ -538,12 +541,12 @@ function ensurePanel() {
 }
 
 function resetAllRoomsForCurrentCharacter() {
-  if (!confirm('이 캐릭터와의 🐶콩고물 토오크 대화방을 전부 초기화하시겠습니까?')) return;
+  if (!confirm('이 캐릭터와의 🐶Konggomul-Talk 대화방을 전부 초기화하시겠습니까?')) return;
   roomState = { rooms: [] };
   createRoom(false);
   saveRooms();
   renderAll();
-  setStatus('🐶콩고물 토오크 대화방을 초기화했습니다.');
+  setStatus('🐶Konggomul-Talk 대화방을 초기화했습니다.');
 }
 
 function renameActiveRoom() {
@@ -598,12 +601,12 @@ function renderSettings() {
   <div id="tua-settings" class="tua-settings-mini">
     <div class="inline-drawer">
       <div class="inline-drawer-toggle inline-drawer-header">
-        <b>🐶콩고물 토오크</b>
+        <b>🐶Konggomul-Talk</b>
         <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
       </div>
       <div class="inline-drawer-content">
         <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화</label>
-        <div class="tua-mini-note">체크하면 🐶콩고물 토오크가 활성화됩니다. 세부 설정은 창 오른쪽 위 ⚙에서 조정합니다.</div>
+        <div class="tua-mini-note">체크하면 🐶Konggomul-Talk가 활성화됩니다. 세부 설정은 창 오른쪽 위 ⚙에서 조정합니다.</div>
       </div>
     </div>
   </div>`;
