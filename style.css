@@ -108,20 +108,24 @@
 .tua-active-room-title {
   flex: 1;
   min-width: 0;
-  padding: 7px 10px;
-  border-radius: 12px;
-  background: rgba(255,255,255,.62);
-  border: 1px solid rgba(159, 122, 54, .18);
+  padding: 8px 11px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.70);
+  border: 1px solid rgba(159, 122, 54, .22);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--tua-text);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(255,255,255,.75) inset;
 }
+.tua-active-room-title:hover { background: #fff8e6; }
 .tua-roombar button { font-size: calc(var(--tua-font-size) - 2px); }
 
 .tua-room-list {
   display: none;
-  max-height: 170px;
+  max-height: 230px;
   overflow-y: auto;
   padding: 8px;
   gap: 6px;
@@ -143,7 +147,9 @@
   text-align: left;
 }
 .tua-room-item.active { background: #f2d89f; border-color: rgba(159, 122, 54, .38); }
-.tua-room-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tua-room-item span { overflow: hidden; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tua-room-item b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 850; }
+.tua-room-item small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tua-muted); font-size: calc(var(--tua-font-size) - 4px); }
 .tua-room-item em { opacity: .68; font-style: normal; color: var(--tua-muted); }
 
 .tua-in-panel-settings {
@@ -261,3 +267,33 @@
   #tua-panel { right: 8px; bottom: 8px; width: calc(100vw - 16px); height: calc(100vh - 16px); }
   #tua-panel .tua-window { border-radius: 16px; }
 }
+
+/* v0.7: message actions are hidden behind long-press / right-click context menu */
+.tua-msg { cursor: default; user-select: text; }
+.tua-msg:active .tua-bubble { filter: brightness(0.98); }
+#tua-context-menu {
+  position: fixed;
+  z-index: 10050;
+  display: none;
+  min-width: 176px;
+  padding: 7px;
+  border-radius: 15px;
+  background: #fffaf0;
+  color: #1d160d;
+  border: 1px solid rgba(134, 96, 36, .22);
+  box-shadow: 0 14px 38px rgba(92, 66, 28, .24);
+}
+#tua-context-menu.open { display: flex; flex-direction: column; gap: 5px; }
+#tua-context-menu button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: 11px;
+  padding: 9px 10px;
+  background: transparent;
+  color: #1d160d;
+  cursor: pointer;
+  font-size: 13px;
+}
+#tua-context-menu button:hover { background: #f3dfb9; }
+#tua-context-menu button.danger:hover { background: #f2c5a8; }

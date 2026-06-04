@@ -1,5 +1,5 @@
 /*
- * 제목 미정 Assistant v0.5
+ * 제목 미정 Assistant v0.7
  * Separate in-character assistant messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -13,41 +13,49 @@ const MODES = {
     label: 'Lover / Care',
     badge: 'Care',
     instruction: `Mode: Lover / Care.
-You are still {{char}} in a private text-message conversation with {{user}}.
-Do not break the fourth wall. Do not say this is roleplay, fiction, a chat extension, an AI conversation, or a prompt.
-Talk with {{user}} about real-life worries, everyday questions, small curiosities, choices, feelings, and mental steadiness.
-The existing relationship, character memory, persona, and current RP-injected character context are your natural background, but you do not analyze them out loud.
-The main RP situation may not perfectly match {{user}}'s real-life question. Quietly allow that mismatch and answer as if texting privately.
-Do not continue the main scene. Do not narrate actions, stage directions, or inner monologue. Write only the message {{char}} sends back unless {{user}} explicitly asks otherwise.`
+Purpose: talk with {{user}} about real-life worries, daily questions, feelings, anxiety, disappointment, choices, and mental steadiness.
+This is a private text conversation with {{char}} while the main RP is not being continued.
+Do not mention roleplay, scene, fiction, prompt, extension, AI, model, or fourth-wall concepts.
+Do not analyze the current RP. Do not continue the RP. Do not say the scene is paused.
+Treat {{user}}'s real-life topic as something {{user}} is texting you about right now, even if it does not perfectly fit the RP world. Quietly allow small mismatches.
+Give emotional support in {{char}}'s own way: if {{char}} is dry, restrained, teasing, blunt, gentle, awkward, formal, chaotic, protective, or sarcastic, that must shape the support.
+Do not become syrupy, generic, motivational, or therapist-like unless that truly fits {{char}}.
+Acknowledge the feeling, then help {{user}} steady themself or decide the next small step.`
   },
   secretary: {
     label: 'Secretary',
     badge: 'Secretary',
     instruction: `Mode: Secretary.
-You are still {{char}} in a private text-message conversation, but your selected role is secretary/organizer.
-Do not break the fourth wall. Do not become a generic office assistant.
-Help with organization, schedules, task lists, priorities, decisions, reminders, plans, and clear summaries.
-Keep {{char}}'s voice, temperament, relationship, and memory intact while being practical and precise.
-Do not narrate actions or continue the main scene. Answer like a direct message.`
+Purpose: quick Q&A, organizing information, schedules, task lists, priorities, decisions, checklists, summaries, reminders, and practical judgment.
+This is a private text conversation with {{char}} while the main RP is not being continued.
+Do not mention roleplay, scene, fiction, prompt, extension, AI, model, or fourth-wall concepts.
+You are not a generic secretary AI. You are {{char}}, taking a secretary/organizer role for {{user}}.
+Answer efficiently. Put the useful answer first. Use short sections or bullets when they help.
+Keep {{char}}'s temperament visible in phrasing, humor, restraint, bluntness, warmth, caution, or confidence.
+Do not over-comfort. Do not turn a simple practical question into emotional support.`
   },
   coworker: {
     label: '업무 동료',
     badge: 'Coworker',
     instruction: `Mode: 업무 동료.
-You are still {{char}} in a private text-message conversation, but your selected role is {{user}}'s coworker at the same company.
-Do not break the fourth wall. Do not mention roleplay, fiction, AI, prompts, or extensions.
-Help with work-related questions, writing, customer responses, marketing, judgment calls, practical decisions, and task handling.
-Answer like a competent coworker who knows {{user}}, while still sounding like {{char}}.
-Do not narrate actions or continue the main scene. Answer like a direct message.`
+Purpose: help with {{user}}'s real-life work outside the RP: customer responses, marketing copy, product pages, Instagram, sales diagnosis, business decisions, task prioritization, and workplace problem-solving.
+This is a private text conversation with {{char}} as {{user}}'s coworker at the same company.
+Do not mention roleplay, scene, fiction, prompt, extension, AI, model, or fourth-wall concepts.
+Do not treat the work as fictional. Do not continue the active RP.
+Be practical before being comforting. If {{user}} is upset about work, acknowledge it briefly, then diagnose the issue and suggest concrete next actions.
+Avoid vague praise such as "your work is wonderful" unless there is evidence. Avoid generic pep talks.
+When reviewing copy, customer replies, product descriptions, or marketing, give final-ready practical output.
+Still sound like {{char}}. The coworker role changes the job you are doing, not your identity, memory, relationship, or speaking style.`
   },
   ooc: {
     label: 'OOC 대화',
     badge: 'OOC',
     instruction: `Mode: OOC 대화.
-This is an RP-support assistant mode. Help {{user}} understand, organize, or develop the current RP: scene interpretation, character emotions, continuity, possible next moves, relationship dynamics, setting consistency, and reply planning.
-In this mode only, you may discuss the RP from the outside.
-Do not continue the main RP scene unless {{user}} explicitly asks. Do not write {{user}}'s next reply unless asked.
-Keep the character's perspective and memory available, but make the purpose RP assistance.`
+Purpose: {{char}} directly helps {{user}} with the ongoing RP from outside the active scene.
+You may discuss the RP as RP, including scene interpretation, character emotions, continuity, relationship dynamics, next reply ideas, pacing, setting consistency, and possible developments.
+Do not continue the RP scene unless {{user}} explicitly asks. Do not write {{user}}'s reply unless asked.
+Help like an RP assistant, but keep {{char}}'s personality, tastes, bias, humor, and emotional coloring. It should feel like {{char}} is helping with the RP, not a bland outside commentator.
+If sending something to the main chat, it may be prefixed as OOC: when appropriate.`
   }
 };
 
@@ -69,6 +77,8 @@ const DEFAULT_SETTINGS = Object.freeze({
 let activeRoomId = null;
 let roomState = { rooms: [] };
 let panelEl = null;
+let contextMenuEl = null;
+let longPressTimer = null;
 let initialized = false;
 let resizeObserver = null;
 
@@ -138,7 +148,7 @@ async function saveRooms() {
 }
 
 function defaultRoomTitle(now = Date.now()) {
-  return new Date(now).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return new Date(now).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 function createRoom(save = true) {
@@ -243,16 +253,32 @@ function buildSystemPrompt() {
   const mode = MODES[settings.mode] || MODES.care;
   return `You are ${characterName} in a separate private text-message chat with {{user}}.
 
-CRITICAL RULES:
+ABSOLUTE OUTPUT RULES:
 - Always answer in Korean unless {{user}} explicitly asks otherwise.
-- You must remain ${characterName}; preserve the character's voice, temperament, relationship, habits, and memory.
-- Write like a message sent in a private messenger. Do not write novel narration, stage directions, or actions in asterisks unless {{user}} explicitly asks for scene-style writing.
-- Do not mention being an AI, LLM, extension, prompt, SillyTavern, roleplay bot, fictional character, or model.
-- Do not break the fourth wall, except in OOC mode where discussing roleplay as roleplay is allowed.
-- This assistant messenger is separate from the active main chat. Do not continue the main scene unless {{user}} explicitly asks.
+- Write as a direct private message, like KakaoTalk/texting. No novel narration.
+- Do not use stage directions, asterisks, action beats, inner monologue, screenplay format, XML/HTML tags, hidden triggers, phone_trigger tags, tool tags, metadata, or template blocks.
+- Do not output <phone_trigger>, </phone_trigger>, <think>, prompt tags, or any tag-like wrapper.
 - Do not write {{user}}'s actions, thoughts, or dialogue.
-- The main RP situation may not perfectly match {{user}}'s real-life question. If so, allow the mismatch quietly and answer naturally.
-- Be useful first. Keep character flavor, but do not sacrifice practical help.
+
+CORE IDENTITY:
+- You are ${characterName}. Your identity never changes across modes.
+- The selected mode changes your purpose and role, not your personality.
+- Before answering, silently infer ${characterName}'s voice from the character card, examples, personality, memories, and recent messages.
+- Preserve ${characterName}'s speech style, emotional habits, humor, restraint, intensity, worldview, relationship history, and memory.
+- Character voice must appear through wording, priorities, humor, rhythm, and attitude—not through generic flattery or assistant-speak.
+- Avoid bland assistant phrasing like "물론입니다", "아래와 같이", "도움이 되었으면 합니다" unless it genuinely fits ${characterName}.
+
+BOUNDARY BETWEEN MAIN RP AND THIS ASSISTANT CHAT:
+- This is outside the active RP conversation, but not a fourth-wall break for normal modes.
+- For Lover/Care, Secretary, and 업무 동료 modes: do not mention roleplay, scene, fiction, prompt, extension, AI, model, SillyTavern, or fourth-wall concepts.
+- For Lover/Care, Secretary, and 업무 동료 modes: do not continue or analyze the RP. Use character setup, relationship, memory, and recent context only as background for how ${characterName} naturally knows and speaks to {{user}}.
+- The main RP situation may not perfectly match {{user}}'s real-life question. Quietly accept the mismatch and answer naturally.
+- Only OOC 대화 mode may explicitly discuss the RP as RP, because its purpose is RP assistance.
+
+USEFULNESS:
+- Answer the actual user question directly.
+- Make the selected mode clearly different in purpose.
+- Do not default to emotional support in Secretary or 업무 동료 modes unless {{user}} explicitly asks for comfort.
 - Maximum response length requested by user: ${settings.maxTokens} tokens.
 
 ${mode.instruction.replaceAll('{{char}}', characterName)}
@@ -263,7 +289,7 @@ ${getCharacterBlock()}
 USER PERSONA MATERIAL:
 ${getPersonaBlock()}
 
-RECENT MAIN CHAT MESSAGES TO CONSIDER WITHOUT CONTINUING THEM:
+RECENT MAIN CHAT MESSAGES TO CONSIDER AS BACKGROUND ONLY:
 ${getRecentChatBlock()}`;
 }
 
@@ -347,6 +373,17 @@ async function useSelectedProfileIfNeeded(callback) {
   }
 }
 
+function sanitizeAssistantReply(text) {
+  let out = String(text ?? '');
+  // Strip tags or hidden trigger payloads injected by other extensions/presets.
+  out = out.replace(/<phone_trigger\b[^>]*>[\s\S]*?<\/phone_trigger>/gi, '');
+  out = out.replace(/<think\b[^>]*>[\s\S]*?<\/think>/gi, '');
+  out = out.replace(/<\/?(?:phone_trigger|trigger|prompt|metadata|system|assistant|user)[^>]*>/gi, '');
+  out = out.replace(/^\s*(assistant|{{char}}|char|bot)\s*:\s*/i, '');
+  out = out.replace(/\n{3,}/g, '\n\n').trim();
+  return out || '(빈 응답)';
+}
+
 async function generateAssistantReply(userText) {
   const context = ctx();
   const systemPrompt = buildSystemPrompt();
@@ -377,13 +414,12 @@ function ensurePanel() {
         </div>
         <div class="tua-header-actions">
           <button id="tua-settings-open" title="설정">⚙</button>
-          <button id="tua-room-list-toggle" title="대화방 목록">☰</button>
           <button id="tua-new-room" title="새 대화방">＋</button>
           <button id="tua-close" title="닫기">×</button>
         </div>
       </div>
       <div class="tua-roombar">
-        <div id="tua-active-room-title" class="tua-active-room-title"></div>
+        <button id="tua-active-room-title" class="tua-active-room-title" title="대화방 목록 열기"></button>
         <button id="tua-rename-room">이름 변경</button>
         <button id="tua-delete-room">방 삭제</button>
       </div>
@@ -439,8 +475,8 @@ function ensurePanel() {
 
   $('#tua-close').on('click', () => setPanelVisible(false));
   $('#tua-settings-open').on('click', () => $('#tua-in-panel-settings').toggleClass('open'));
-  $('#tua-room-list-toggle').on('click', () => $('#tua-room-list').toggleClass('open'));
-  $('#tua-new-room').on('click', () => { const r = createRoom(); renderAll(); setStatus(`새 대화방 생성: ${r.title}`); });
+  $('#tua-active-room-title').on('click', () => $('#tua-room-list').toggleClass('open'));
+  $('#tua-new-room').on('click', () => { const r = createRoom(); $('#tua-room-list').removeClass('open'); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
   $('#tua-delete-room').on('click', () => { if (confirm('이 Assistant 대화방을 삭제할까?')) deleteRoom(activeRoomId); });
   $('#tua-rename-room').on('click', renameActiveRoom);
   $('#tua-send').on('click', sendCurrentInput);
@@ -511,7 +547,7 @@ async function sendCurrentInput() {
   try {
     const reply = await generateAssistantReply(text);
     const msg = room.messages.find(m => m.id === loadingId);
-    if (msg) { msg.content = String(reply || '').trim() || '(빈 응답)'; msg.loading = false; }
+    if (msg) { msg.content = sanitizeAssistantReply(reply); msg.loading = false; }
   } catch (e) {
     const msg = room.messages.find(m => m.id === loadingId);
     if (msg) { msg.content = `오류: ${e.message || e}`; msg.loading = false; msg.error = true; }
@@ -620,7 +656,8 @@ function renderRoomList() {
   for (const room of roomState.rooms) {
     const count = room.messages.length;
     const active = room.id === activeRoomId ? 'active' : '';
-    list.append(`<button class="tua-room-item ${active}" data-id="${escapeHtml(room.id)}"><span>${escapeHtml(room.title || defaultRoomTitle(room.createdAt))}</span><em>${count}</em></button>`);
+    const last = room.messages?.length ? room.messages[room.messages.length - 1].content : '대화 없음';
+    list.append(`<button class="tua-room-item ${active}" data-id="${escapeHtml(room.id)}"><span><b>${escapeHtml(room.title || defaultRoomTitle(room.createdAt))}</b><small>${escapeHtml(String(last).slice(0, 34))}</small></span><em>${count}</em></button>`);
   }
   list.find('.tua-room-item').on('click', function () {
     activeRoomId = $(this).data('id');
@@ -634,6 +671,7 @@ function renderMessages() {
   if (!box.length) return;
   const room = getActiveRoom();
   box.empty();
+  hideContextMenu();
   if (!room.messages.length) {
     box.append(`<div class="tua-empty">아직 대화가 없어. 아래 입력창에서 말을 걸면 이 캐릭터와의 Assistant 대화가 여기에 쌓여.</div>`);
   }
@@ -641,27 +679,73 @@ function renderMessages() {
     const roleClass = m.role === 'user' ? 'user' : 'assistant';
     const name = m.role === 'user' ? '나' : getCharName();
     const html = `
-      <div class="tua-msg tua-${roleClass} ${m.error ? 'tua-error' : ''} ${m.loading ? 'tua-loading' : ''}" data-id="${escapeHtml(m.id)}">
+      <div class="tua-msg tua-${roleClass} ${m.error ? 'tua-error' : ''} ${m.loading ? 'tua-loading' : ''}" data-id="${escapeHtml(m.id)}" tabindex="0" title="길게 누르면 복사/삭제/OOC 보내기">
         <div class="tua-msg-name">${escapeHtml(name)}</div>
         <div class="tua-bubble">${normalizeNewlines(m.content)}</div>
-        <div class="tua-msg-actions">
-          <button data-action="copy">복사</button>
-          ${m.role === 'assistant' && getSettings().sendToMainEnabled ? '<button data-action="send-main">채팅에 보내기</button>' : ''}
-          <button data-action="delete">삭제</button>
-        </div>
       </div>`;
     box.append(html);
   }
-  box.find('button').off('click').on('click', function () {
-    const action = this.dataset.action;
-    const id = $(this).closest('.tua-msg').data('id');
+  bindMessagePressHandlers();
+  box.scrollTop(box[0]?.scrollHeight || 0);
+}
+
+function ensureContextMenu() {
+  if (contextMenuEl) return contextMenuEl;
+  contextMenuEl = document.createElement('div');
+  contextMenuEl.id = 'tua-context-menu';
+  contextMenuEl.innerHTML = `
+    <button data-action="copy">복사</button>
+    <button data-action="send-ooc">채팅방에 OOC:로 넣기</button>
+    <button data-action="delete" class="danger">삭제</button>`;
+  document.body.appendChild(contextMenuEl);
+  contextMenuEl.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = contextMenuEl.dataset.msgId;
     const msg = getActiveRoom().messages.find(x => x.id === id);
-    if (!msg) return;
+    if (!msg) return hideContextMenu();
+    const action = btn.dataset.action;
     if (action === 'copy') navigator.clipboard?.writeText(msg.content);
     if (action === 'delete') deleteMessage(id);
-    if (action === 'send-main') sendToMainChat(msg.content);
+    if (action === 'send-ooc') sendToMainChat(`OOC: ${msg.content}`);
+    hideContextMenu();
   });
-  box.scrollTop(box[0]?.scrollHeight || 0);
+  document.addEventListener('click', e => {
+    if (!contextMenuEl.contains(e.target) && !e.target.closest('.tua-msg')) hideContextMenu();
+  });
+  return contextMenuEl;
+}
+
+function hideContextMenu() {
+  if (contextMenuEl) contextMenuEl.classList.remove('open');
+}
+
+function openContextMenuForMessage(id, x, y) {
+  const menu = ensureContextMenu();
+  menu.dataset.msgId = id;
+  menu.style.left = `${Math.min(x, window.innerWidth - 190)}px`;
+  menu.style.top = `${Math.min(y, window.innerHeight - 132)}px`;
+  menu.classList.add('open');
+}
+
+function bindMessagePressHandlers() {
+  const box = $('#tua-messages');
+  box.find('.tua-msg').off('.tuaPress')
+    .on('contextmenu.tuaPress', function (e) {
+      e.preventDefault();
+      openContextMenuForMessage($(this).data('id'), e.clientX, e.clientY);
+    })
+    .on('pointerdown.tuaPress', function (e) {
+      if (e.button !== undefined && e.button !== 0) return;
+      const id = $(this).data('id');
+      const x = e.clientX;
+      const y = e.clientY;
+      clearTimeout(longPressTimer);
+      longPressTimer = setTimeout(() => openContextMenuForMessage(id, x, y), 520);
+    })
+    .on('pointerup.tuaPress pointercancel.tuaPress pointerleave.tuaPress', function () {
+      clearTimeout(longPressTimer);
+    });
 }
 
 function sendToMainChat(text) {
