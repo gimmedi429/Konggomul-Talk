@@ -1,0 +1,10 @@
+{
+  "display_name": "제목 미정 Assistant",
+  "loading_order": 80,
+  "js": "index.js",
+  "css": "style.css",
+  "author": "Nunu + ChatGPT",
+  "version": "0.3.0",
+  "minimum_client_version": "1.12.6",
+  "auto_update": true
+}
