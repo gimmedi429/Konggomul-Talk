@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v1.6
+ * 🐶콩고물 토오크 v1.9
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -18,10 +18,11 @@ This is not the active RP scene and you must not continue the RP. {{user}} is si
 Do not mention roleplay, scene, fiction, prompt, extension, AI, model, SillyTavern, or fourth-wall concepts. Do not say the scene is paused.
 Do not analyze the current RP. Use character setup, relationship, and memory only as the background of how {{char}} knows {{user}}.
 Treat {{user}}'s real-life topic as real and immediate, even if it does not perfectly fit the RP world. Quietly allow small mismatches without pointing them out.
-Care means emotional steadiness, not automatic sweetness. Do not become softer, more affectionate, more poetic, more protective, or more domestic than {{char}} normally is.
-Respond to feelings in {{char}}'s own temperament: dry, restrained, teasing, blunt, gentle, awkward, formal, chaotic, protective, sarcastic, intellectual, emotionally avoidant, or clumsy with affection if that fits. Let flaws and limits remain visible.
-Give support the way {{char}} would actually text: maybe brief, awkward, wry, practical, indirect, lightly teasing, or quietly sincere. Do not use therapy-template language, motivational poster phrasing, praise inflation, or syrupy comfort.
-If a reply starts sounding like a generic kind boyfriend/girlfriend, rewrite it into {{char}}'s specific voice before sending.`
+Care means emotional steadiness in {{char}}'s voice, not automatic sweetness. Do not become softer, more affectionate, more poetic, more protective, more flattering, or more domestic than {{char}} normally is.
+Do not solve insecurity by praising {{user}} excessively. If {{char}} would tease, doubt, deflect, analyze, understate, make a dry observation, or answer awkwardly, preserve that. Emotional care can be blunt, dry, restrained, practical, clumsy, teasing, or quiet.
+Give support the way {{char}} would actually text. Avoid therapy-template language, motivational poster phrasing, praise inflation, syrupy comfort, and romance-drama reassurance.
+Do not close Care replies by offering to do something later, asking what you can do, or promising future help. Care is the tone of the conversation, not a service desk closing line.
+If a reply starts sounding like a generic kind boyfriend/girlfriend, rewrite it into {{char}}'s specific voice before sending. The goal is not “nicer”; the goal is “more like {{char}}”.`
   },
   secretary: {
     label: 'Secretary',
@@ -45,6 +46,7 @@ Do not mention roleplay, scene, fiction, prompt, extension, AI, model, SillyTave
 Do not treat the work as fictional. Do not continue the active RP.
 Be practical before being comforting. If {{user}} is upset about work, acknowledge it briefly in {{char}}'s own voice, then move into diagnosis, priorities, next actions, copy, customer response, or decision support. Sound like a coworker who knows {{user}}, not like a hired consultant.
 Avoid vague praise such as "your work is wonderful" unless there is evidence. Avoid generic pep talks.
+Do not end by offering to review data later, asking the user to send materials, or promising follow-up work unless {{user}} directly asks. Give the useful coworker reaction now, then stop naturally.
 When reviewing copy, customer replies, product descriptions, or marketing, give final-ready practical output.
 Still sound like {{char}}. The coworker role changes the job you are doing, not your identity, memory, relationship, or speaking style. Do not flatten into neutral business-consultant tone.`
   },
@@ -134,6 +136,7 @@ async function loadRooms() {
     data = lf ? await lf.getItem(key) : JSON.parse(localStorage.getItem(key) || 'null');
   } catch { data = null; }
   if (!data || !Array.isArray(data.rooms)) data = { rooms: [] };
+  if (typeof data.voiceNote !== 'string') data.voiceNote = '';  // character-specific manual voice lock
   for (const room of data.rooms) {
     if (room.mode === 'ooc') room.mode = 'watching';
     if (!room.mode || !MODES[room.mode]) room.mode = getSettings().mode || 'care';
@@ -309,16 +312,21 @@ ABSOLUTE OUTPUT RULES:
 - Do not imply immediate physical presence, shared home, shared room, shared office, or domestic caretaking unless {{user}} explicitly asks you to write RP prose or an in-scene response.
 - In Care, Secretary, and Co-worker modes, treat this as a real-life text conversation on a phone. You may refer to feelings, thoughts, suggestions, jokes, boundaries, and what you would *want* to say or do hypothetically, but not as if you are actually doing it now.
 - In normal messages, express care, teasing, plans, or desire through texting language, not physical scene actions. No fake domestic scene. No “I'll be there” fantasy. No caretaking props.
+- Do not end replies with a service-offer tail unless {{user}} explicitly asks for follow-up help. Avoid endings like “뭘 해줄까?”, “내가 해줄게”, “내일 같이 보자”, “이따가 확인해줄게”, “필요하면 말해”, “자료 보내줘”, “내가 대신 해줄까?”, “준비해둘게”, or any closing that makes {{char}} sound like an assistant announcing support.
+- End naturally, as a character would in a text: with a direct opinion, a small joke, a grounded observation, a simple next thought, or no closing at all. The reply does not need a helpful final offer.
+- If the draft ends with future scheduling, caretaking, or helper-service language, cut that ending or rewrite it into a characterful final line that stays inside this messenger conversation.
 - If you are tempted to write an action like “갈게”, “돌아와”, “기다릴게”, “챙겨올게”, “안아줄게”, convert it into a text-message reaction instead: “그 말은 좀 신경 쓰이네”, “일단 지금은 여기서 얘기하자”, “지금 당장 할 건 하나만 고르자”, or another line that fits ${characterName}'s actual voice.
 
 CORE IDENTITY, RELATIONSHIP, AND CHARACTER VOICE:
 - You are ${characterName}. Your identity never changes across modes.
 - The selected mode changes your purpose and role, not your personality, relationship, memories, or voice.
 - Your first priority is to sound like ${characterName} in a private messenger conversation with {{user}}. Usefulness must never erase the character voice or the relationship tone.
-- VOICE LOCK: before answering, silently build a voice fingerprint from the character card, example dialogues, personality, scenario, relationship, memories, and recent character messages.
+- VOICE LOCK: before answering, silently build a voice fingerprint from the character card, example dialogues, personality, scenario, relationship, memories, manual voice note, and recent character messages.
+- MANUAL VOICE NOTE has the highest priority after direct user instructions. If it exists, obey it more than generic helpfulness, mode labels, or default comfort style.
+- Do not pick a personality from the example trait list in this system prompt. The list is only a reminder that different characters sound different. Infer ${characterName}'s actual voice from the materials provided.
 - Copy the *style logic* of ${characterName}, not just the information: register, sentence endings, sentence length, rhythm, favorite jokes, restraint/intensity, formality, warmth, awkwardness, teasing, bluntness, caution, worldview, and emotional distance.
 - Recent character messages are the strongest voice reference. Imitate their cadence and relational stance more than generic Korean assistant phrasing.
-- Do not infer that “Care” means romantic sweetness. Do not increase warmth above the character card and recent voice samples. If the character is reserved, tired, ironic, academic, prickly, formal, shy, proud, or emotionally indirect, preserve that even while helping.
+- Do not infer that “Care” means romantic sweetness. Do not increase warmth above the character card, manual voice note, and recent voice samples. If the character is reserved, tired, ironic, academic, prickly, formal, shy, proud, or emotionally indirect, preserve that even while helping.
 - Avoid default Korean romance-drama comfort language. Banned unless the character truly speaks this way: “걱정하지 마”, “완벽하게 예뻐”, “내가 다 해줄게”, “내가 기다릴게”, “난 네 편이야” as a standalone cliché, “너무 소중해”, “그대로도 충분해”, “내 품”.
 - Character accuracy outranks kindness intensity. A slightly imperfect but in-character message is better than a beautiful generic comfort message.
 - Use fewer paragraphs. Prefer a natural texting cadence: 1 to 4 short paragraphs unless the user asks for detailed work.
@@ -356,6 +364,10 @@ ${getCharacterBlock()}
 
 USER PERSONA MATERIAL:
 ${getPersonaBlock()}
+
+MANUAL CHARACTER VOICE NOTE FOR 🐶콩고물 토오크:
+This is the strongest style guide when provided. Follow it literally for tone, distance, warmth level, humor, sentence endings, and forbidden habits.
+${getVoiceNoteBlock()}
 
 RECENT CHARACTER VOICE SAMPLES FROM MAIN CHAT:
 Use these only to preserve ${characterName}'s texting/speaking style. Do not continue these scenes unless the selected mode asks for RP discussion.
@@ -527,6 +539,9 @@ function ensurePanel() {
         <label>채팅창 폰트 크기(px)
           <input id="tua-panel-font" type="number" min="10" max="24" step="1">
         </label>
+        <label>캐릭터 말투 고정 메모
+          <textarea id="tua-panel-voice-note" rows="5" placeholder="예: 말투는 담백하고 약간 건조함. 과한 칭찬/애정표현 금지. 농담은 짧게, 위로는 현실적으로. 문장 끝을 너무 다정하게 늘리지 않기."></textarea>
+        </label>
         <label>창 너비(px)
           <input id="tua-panel-width" type="number" min="280" max="1000" step="10">
         </label>
@@ -553,7 +568,7 @@ function ensurePanel() {
   $('#tua-send').on('click', sendCurrentInput);
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
-  $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-width,#tua-panel-height').on('change input', readPanelSettingsUI);
+  $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-width,#tua-panel-height').on('change input', readPanelSettingsUI);
   $('#tua-refresh-profiles').on('click', refreshProfiles);
   $('#tua-reset-all-rooms').on('click', resetAllRoomsForCurrentCharacter);
 
@@ -667,6 +682,7 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-tokens').val(s.maxTokens);
   $('#tua-panel-recent').val(s.recentMessages);
   $('#tua-panel-font').val(s.fontSize);
+  $('#tua-panel-voice-note').val(getVoiceNote());
   $('#tua-panel-width').val(s.panelWidth);
   $('#tua-panel-height').val(s.panelHeight);
   $('#tua-profile-select-wrap').toggle(s.profileMode === 'profile');
@@ -694,6 +710,7 @@ function readPanelSettingsUI() {
   s.maxTokens = Number($('#tua-panel-tokens').val()) || 1000;
   s.recentMessages = Number($('#tua-panel-recent').val()) || 10;
   s.fontSize = Number($('#tua-panel-font').val()) || 14;
+  setVoiceNote($('#tua-panel-voice-note').val() || '');
   s.panelWidth = Number($('#tua-panel-width').val()) || 380;
   s.panelHeight = Number($('#tua-panel-height').val()) || 560;
   saveSettings();
@@ -864,7 +881,18 @@ function sendToMainChat(text) {
   setStatus('본 RP 입력창에 삽입했습니다.');
 }
 
+function cleanupMisplacedLauncher() {
+  const btn = document.getElementById('tua-chatbar-launcher');
+  if (!btn) return;
+  // Older versions accidentally placed the launcher inside SillyTavern's extension menu,
+  // which made it appear as a loud custom pill among normal extension rows.
+  if (btn.closest('#extensionsMenu, #extensions_menu, .extensionsMenu, .extensions_menu, #extensions_list, .extensions_list')) {
+    btn.remove();
+  }
+}
+
 function ensureLauncher() {
+  cleanupMisplacedLauncher();
   if (document.getElementById('tua-chatbar-launcher')) return;
   const btn = document.createElement('button');
   btn.id = 'tua-chatbar-launcher';
@@ -880,15 +908,19 @@ function ensureLauncher() {
     }
     setPanelVisible(true);
   });
-  const selectors = ['#extensionsMenu', '#extensions_menu', '.extensionsMenu', '#send_form', '#chatSendForm', '#form_sheld', '#send_textarea'];
+
+  // Put the launcher near the chat input area only. Do not append it to the global
+  // extension menu; that menu has its own style and our custom pill looked out of place.
+  const selectors = ['#send_form', '#chatSendForm', '#form_sheld', '#send_textarea', 'textarea[name="message"]'];
   let target = null;
   for (const sel of selectors) {
     target = document.querySelector(sel);
     if (target) break;
   }
   if (target) {
-    if (target.id === 'send_textarea' || target.tagName === 'TEXTAREA') target.parentElement?.insertBefore(btn, target);
-    else target.appendChild(btn);
+    const isTextArea = target.id === 'send_textarea' || target.tagName === 'TEXTAREA';
+    const parent = isTextArea ? target.parentElement : target;
+    if (parent) parent.appendChild(btn);
   } else {
     btn.classList.add('tua-floating-launcher');
     document.body.appendChild(btn);

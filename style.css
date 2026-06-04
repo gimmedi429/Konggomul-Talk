@@ -451,3 +451,37 @@
   font-size: 15px !important;
   box-sizing: border-box !important;
 }
+
+/* v1.8: keep launcher out of the extension list; if an old cached launcher remains there, make it look like a normal menu row instead of a loud pill. */
+#extensionsMenu #tua-chatbar-launcher,
+#extensions_menu #tua-chatbar-launcher,
+.extensionsMenu #tua-chatbar-launcher,
+.extensions_menu #tua-chatbar-launcher,
+#extensions_list #tua-chatbar-launcher,
+.extensions_list #tua-chatbar-launcher {
+  all: unset !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 28px !important;
+  padding: 3px 8px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  font: inherit !important;
+  line-height: 1.25 !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  text-align: left !important;
+}
+#extensionsMenu #tua-chatbar-launcher:hover,
+#extensions_menu #tua-chatbar-launcher:hover,
+.extensionsMenu #tua-chatbar-launcher:hover,
+.extensions_menu #tua-chatbar-launcher:hover,
+#extensions_list #tua-chatbar-launcher:hover,
+.extensions_list #tua-chatbar-launcher:hover {
+  background: rgba(128, 128, 128, .12) !important;
+}

@@ -1,7 +1,3 @@
-# 🐶콩고물 토오크 v1.6
+# 🐶콩고물 토오크 v1.8
 
-SillyTavern companion messenger extension.
-
-- Input bar repaired.
-- Stronger no-physical-action messaging rules.
-- Stronger character voice lock.
+캐릭터별 별도 메신저형 SillyTavern 확장입니다. v1.8은 캐릭터 말투 고정 메모 기능과 캐릭터성 강화 프롬프트를 추가했습니다.
