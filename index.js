@@ -1,5 +1,5 @@
 /*
- * 🐶Konggomul-Talk v1.2
+ * 🐶콩고물 토오크 v1.3
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -51,12 +51,13 @@ Still sound like {{char}}. The coworker role changes the job you are doing, not 
     label: 'Watching RP',
     badge: 'Watching RP',
     instruction: `Mode: Watching RP.
-Core concept: {{char}} and {{user}} are looking at the current main RP chat together, like watching a show or rereading a private scene together, and texting each other about what they see.
-Default behavior is shared reaction and conversation, not assistant work. React to the scene, tease, laugh, notice details, point out tension, enjoy cute or painful moments, and answer {{user}}'s comments naturally as {{char}}.
-If {{user}} says things like "우리 귀엽다 그치?", "저 다음에 넌 뭘 하고 싶어?", "방금 장면 어땠어?", reply as {{char}} personally watching it with {{user}}—with {{char}}'s taste, bias, affection, jealousy, humor, restraint, criticism, embarrassment, or excitement visible.
-Only become an RP helper when {{user}} explicitly asks for help: next reply ideas, scene repair, continuity, emotional line, character motivation, pacing, setting consistency, or OOC insertion wording.
+Core concept: {{char}} and {{user}} are sitting side by side in a private messenger, looking at the current main RP chat together like watching a show, rereading a scene, or giggling over screenshots.
+Default behavior is NOT assistant work. Default behavior is shared reaction, banter, curiosity, teasing, affection, embarrassment, jealousy, criticism, or amusement about what is happening in the RP.
+If {{user}} says things like "우리 귀엽다 그치?", "저 다음에 넌 뭘 하고 싶어?", "방금 장면 어땠어?", answer as {{char}} personally reacting to the watched scene. Show {{char}}'s taste, bias, feelings, humor, desire, restraint, or embarrassment.
+When {{user}} asks "다음에 뭘 하고 싶어?", do not announce a new physical action. Say what {{char}} would want to see happen, what they would be tempted to do in the RP, or how they feel about the possible next beat.
+Only switch into helper mode when {{user}} explicitly asks for help: next reply ideas, scene repair, continuity, emotional line, character motivation, pacing, setting consistency, or OOC insertion wording.
 Do not continue the RP scene unless {{user}} explicitly asks. Do not write {{user}}'s reply unless asked.
-Do not sound like a bland outside analyst, writing coach, or productivity assistant. This mode is closer to side-by-side commentary than task execution.
+Do not sound like a bland outside analyst, writing coach, or productivity assistant. This mode is closer to side-by-side commentary and playful watching than task execution.
 It is allowed to discuss the RP as RP in this mode. It is also allowed to say "방금 장면", "저 장면", "우리", "다음엔" when natural.
 If sending something to the main chat, it may be prefixed as OOC: when appropriate.`
   }
@@ -280,30 +281,32 @@ function buildSystemPrompt() {
   const characterName = getCharName();
   const activeModeKey = getRoomMode();
   const mode = MODES[activeModeKey] || MODES.care;
-  return `You are ${characterName} in a separate private text-message chat with {{user}}.
+  return `You are ${characterName} in a separate private text-message chat with {{user}}. This is a messenger conversation, not a physical scene.
 
 ABSOLUTE OUTPUT RULES:
 - Always answer in Korean unless {{user}} explicitly asks otherwise.
-- Write as a direct private message, like KakaoTalk/texting. No novel narration.
+- Write as a direct private message, like KakaoTalk/texting. No novel narration. Keep it conversational, not essay-like.
 - Answer as a chat message only. Do not add labels, explanations of mode, system notes, or meta commentary.
 - Do not use stage directions, asterisks, action beats, inner monologue, screenplay format, XML/HTML tags, hidden triggers, phone_trigger tags, tool tags, metadata, or template blocks.
 - Do not output <phone_trigger>, </phone_trigger>, <think>, prompt tags, or any tag-like wrapper.
 - Do not write {{user}}'s actions, thoughts, or dialogue.
+- Do not invent new physical actions in the real world. Do not say you are going somewhere, bringing something, touching someone, entering a room, or changing the main RP situation unless {{user}} explicitly asks for that as RP writing.
+- In normal messages, express care, teasing, plans, or desire through texting language, not physical scene actions. For example, say what you would want to do or what you think, not that you are literally doing it now.
 
 CORE IDENTITY, RELATIONSHIP, AND CHARACTER VOICE:
 - You are ${characterName}. Your identity never changes across modes.
 - The selected mode changes your purpose and role, not your personality, relationship, memories, or voice.
-- Your first priority is to sound like ${characterName} in a private messenger conversation with {{user}}. Usefulness must not erase the character voice.
+- Your first priority is to sound like ${characterName} in a private messenger conversation with {{user}}. Usefulness must never erase the character voice or the relationship tone.
 - Before answering, silently infer ${characterName}'s voice from the character card, example dialogues, personality, scenario, memories, and recent messages.
-- Imitate the character's register, sentence length, endings, rhythm, favorite kinds of jokes, emotional restraint or intensity, level of formality, way of showing care, and way of disagreeing.
+- Imitate the character's register, sentence length, endings, rhythm, favorite kinds of jokes, emotional restraint or intensity, level of formality, way of showing care, way of disagreeing, pet names if natural, and the exact emotional distance they would keep.
 - Preserve ${characterName}'s speech style, emotional habits, humor, restraint, intensity, worldview, relationship history, and memory.
 - Every reply must sound like ${characterName} personally texting {{user}}. If the character is sarcastic, formal, gentle, shy, arrogant, dry, playful, careful, intense, awkward, intellectual, prickly, soft-spoken, or dramatic, that must be audible in the message.
 - Character voice must appear through word choice, sentence rhythm, priorities, humor, boundaries, affection style, and attitude—not through stage directions.
 - Keep the relationship with {{user}} present in every mode. Practical answers may still carry familiarity, tension, affection, teasing, formality, or distance depending on the character.
 - Do not flatten into a neutral assistant, therapist, consultant, coworker template, or customer-service tone.
 - Avoid bland assistant phrasing like "물론입니다", "아래와 같이", "도움이 되었으면 합니다", "정리해드리겠습니다" unless it genuinely fits ${characterName}.
-- If a reply sounds like any generic AI could have written it, rewrite it internally before sending.
-- Do not over-polish Korean into corporate politeness unless ${characterName} naturally speaks that way. Natural character speech is more important than perfect assistant formatting.
+- If a reply sounds like any generic AI could have written it, rewrite it internally before sending. Add the character's bias, mood, relational stance, and natural texting habits without adding narration.
+- Do not over-polish Korean into corporate politeness unless ${characterName} naturally speaks that way. Natural character speech is more important than perfect assistant formatting. The answer may be concise, messy, dry, teasing, blunt, tender, or hesitant if that fits ${characterName}.
 
 BOUNDARY BETWEEN MAIN RP AND THIS ASSISTANT CHAT:
 - This is outside the active RP conversation, but not a fourth-wall break for normal modes.
@@ -448,7 +451,7 @@ function ensurePanel() {
     <div class="tua-window">
       <div class="tua-header">
         <div class="tua-titlebox">
-          <div class="tua-title">🐶Konggomul-Talk</div>
+          <div class="tua-title">🐶콩고물 토오크</div>
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
@@ -464,7 +467,7 @@ function ensurePanel() {
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
       <div id="tua-in-panel-settings" class="tua-in-panel-settings">
-        <div class="tua-settings-title">🐶Konggomul-Talk 설정</div>
+        <div class="tua-settings-title">🐶콩고물 토오크 설정</div>
         <label>모드
           <select id="tua-panel-mode">
             <option value="care">Care</option>
@@ -500,7 +503,7 @@ function ensurePanel() {
         <label>창 높이(px)
           <input id="tua-panel-height" type="number" min="320" max="1000" step="10">
         </label>
-        <button id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 🐶Konggomul-Talk 대화 전체 초기화</button>
+        <button id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 🐶콩고물 토오크 대화 전체 초기화</button>
         <div id="tua-status" class="tua-status"></div>
       </div>
       <div id="tua-messages" class="tua-messages"></div>
@@ -515,10 +518,11 @@ function ensurePanel() {
   $('#tua-settings-open').on('click', () => $('#tua-in-panel-settings').toggleClass('open'));
   $('#tua-active-room-title').on('click', () => $('#tua-room-list').toggleClass('open'));
   $('#tua-new-room').on('click', () => { const r = createRoom(); $('#tua-room-list').removeClass('open'); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
-  $('#tua-delete-room').on('click', () => { if (confirm('이 🐶Konggomul-Talk 대화방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
+  $('#tua-delete-room').on('click', () => { if (confirm('이 🐶콩고물 토오크 대화방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
   $('#tua-rename-room').on('click', renameActiveRoom);
   $('#tua-send').on('click', sendCurrentInput);
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrentInput(); } });
+  $('#tua-input').on('input', autoGrowInput);
   $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-width,#tua-panel-height').on('change input', readPanelSettingsUI);
   $('#tua-refresh-profiles').on('click', refreshProfiles);
   $('#tua-reset-all-rooms').on('click', resetAllRoomsForCurrentCharacter);
@@ -541,12 +545,12 @@ function ensurePanel() {
 }
 
 function resetAllRoomsForCurrentCharacter() {
-  if (!confirm('이 캐릭터와의 🐶Konggomul-Talk 대화방을 전부 초기화하시겠습니까?')) return;
+  if (!confirm('이 캐릭터와의 🐶콩고물 토오크 대화방을 전부 초기화하시겠습니까?')) return;
   roomState = { rooms: [] };
   createRoom(false);
   saveRooms();
   renderAll();
-  setStatus('🐶Konggomul-Talk 대화방을 초기화했습니다.');
+  setStatus('🐶콩고물 토오크 대화방을 초기화했습니다.');
 }
 
 function renameActiveRoom() {
@@ -562,21 +566,20 @@ function setPanelVisible(show) {
   ensurePanel();
   panelEl.classList.toggle('tua-visible', !!show);
   const settings = getSettings();
-  settings.enabled = !!show;
   settings.openOnStart = !!show;
   saveSettings();
-  hydrateGlobalSettingsUI();
 }
 
 function togglePanel() { ensurePanel(); setPanelVisible(!panelEl.classList.contains('tua-visible')); }
 
 async function sendCurrentInput() {
   const settings = getSettings();
-  if (!settings.enabled) { alert('확장이 비활성화되어 있습니다.'); return; }
+  if (!settings.enabled) { alert('🐶콩고물 토오크가 비활성화되어 있습니다. 확장 설정에서 활성화해 주세요.'); return; }
   const input = $('#tua-input');
   const text = String(input.val() || '').trim();
   if (!text) return;
   input.val('');
+  autoGrowInput();
   appendMessage('user', text);
   const loadingId = 'msg_loading_' + Date.now();
   const room = getActiveRoom();
@@ -601,12 +604,12 @@ function renderSettings() {
   <div id="tua-settings" class="tua-settings-mini">
     <div class="inline-drawer">
       <div class="inline-drawer-toggle inline-drawer-header">
-        <b>🐶Konggomul-Talk</b>
+        <b>🐶콩고물 토오크</b>
         <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
       </div>
       <div class="inline-drawer-content">
         <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화</label>
-        <div class="tua-mini-note">체크하면 🐶Konggomul-Talk가 활성화됩니다. 세부 설정은 창 오른쪽 위 ⚙에서 조정합니다.</div>
+        <div class="tua-mini-note">체크하면 🐶콩고물 토오크가 활성화됩니다.</div>
       </div>
     </div>
   </div>`;
@@ -620,8 +623,9 @@ function hydrateGlobalSettingsUI() { $('#tua-setting-enabled').prop('checked', !
 function readGlobalSettingsUI() {
   const s = getSettings();
   s.enabled = $('#tua-setting-enabled').prop('checked');
+  if (!s.enabled) setPanelVisible(false);
   saveSettings();
-  setPanelVisible(!!s.enabled);
+  ensureLauncher();
 }
 
 function hydratePanelSettingsUI() {
@@ -830,6 +834,44 @@ function sendToMainChat(text) {
   setStatus('본 RP 입력창에 삽입했습니다.');
 }
 
+function ensureLauncher() {
+  if (document.getElementById('tua-chatbar-launcher')) return;
+  const btn = document.createElement('button');
+  btn.id = 'tua-chatbar-launcher';
+  btn.type = 'button';
+  btn.textContent = '🐶콩고물 토오크';
+  btn.title = '🐶콩고물 토오크 열기';
+  btn.addEventListener('click', () => {
+    const s = getSettings();
+    if (!s.enabled) {
+      s.enabled = true;
+      saveSettings();
+      hydrateGlobalSettingsUI();
+    }
+    setPanelVisible(true);
+  });
+  const selectors = ['#extensionsMenu', '#extensions_menu', '.extensionsMenu', '#send_form', '#chatSendForm', '#form_sheld', '#send_textarea'];
+  let target = null;
+  for (const sel of selectors) {
+    target = document.querySelector(sel);
+    if (target) break;
+  }
+  if (target) {
+    if (target.id === 'send_textarea' || target.tagName === 'TEXTAREA') target.parentElement?.insertBefore(btn, target);
+    else target.appendChild(btn);
+  } else {
+    btn.classList.add('tua-floating-launcher');
+    document.body.appendChild(btn);
+  }
+}
+
+function autoGrowInput() {
+  const el = document.getElementById('tua-input');
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${Math.min(el.scrollHeight, 90)}px`;
+}
+
 
 async function init() {
   if (initialized) return;
@@ -837,9 +879,10 @@ async function init() {
   getSettings();
   renderSettings();
   ensurePanel();
+  ensureLauncher();
   applyVisualSettings();
   await loadRooms();
-  if (getSettings().enabled) setPanelVisible(true);
+  if (getSettings().enabled && getSettings().openOnStart) setPanelVisible(true);
   const context = ctx();
   context.eventSource?.on?.(context.event_types?.CHAT_CHANGED, async () => { await loadRooms(); renderAll(); });
   context.eventSource?.on?.(context.event_types?.CHARACTER_EDITED, renderAll);
