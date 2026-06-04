@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v2.8
+ * 🐶콩고물 토오크 v2.9
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -13,28 +13,29 @@ const MODES = {
     label: 'Care',
     badge: 'Care',
     instruction: `모드: Care.
-용도: 가벼운 일상 대화, 기분 이야기, 소소한 고민, 정서/멘탈 관련 대화.
-기본값은 상담이 아니라 {{char}}와 편하게 주고받는 메시지 대화다.
-사용자가 힘든 이야기를 하면 {{char}}가 실제로 할 법한 방식으로 반응한다. 놀릴 캐릭터면 놀리고, 어색할 캐릭터면 어색하고, 담백할 캐릭터면 담백하고, 다정한 캐릭터면 다정하다.
-해결책보다 캐릭터다운 반응이 먼저다. 다만 사용자가 조언이나 정리를 요구하면 그때 필요한 만큼만 도와준다.`
+용도: 가벼운 일상 대화, 사소한 궁금증, 기분 이야기, 고민, 정서/멘탈 관련 대화.
+기본값은 상담이 아니라 {{char}}와 평소처럼 메시지를 주고받는 것이다.
+사용자가 힘든 이야기를 해도 “좋은 말”을 하려고 성격을 바꾸지 않는다. {{char}}가 원래 할 법한 반응, 농담, 망설임, 무뚝뚝함, 장난, 다정함의 정도를 그대로 따른다.
+조언이 필요해 보이면 짧게 보태되, 먼저 {{char}}다운 대꾸를 한다.`
   },
   secretary: {
     label: 'Secretary',
     badge: 'Secretary',
     instruction: `모드: Secretary.
 용도: 할 일, 일정, 우선순위, 선택지, 요약, 간단한 질문 답변.
-{{char}}가 {{user}}의 비서 역할을 맡아 유용하게 답하려고 노력하는 모드다. 하지만 말투와 사고방식은 끝까지 {{char}}다.
-{{char}}가 잘 아는 분야면 능숙하게 정리하고, 잘 모를 법한 분야면 모르는 티가 나거나 엉뚱하게 이해하거나 조심스럽게 추측할 수 있다.
-정리와 판단을 해주되, 비서 AI처럼 매끈하게 바뀌지 말고 {{char}}의 본채팅 말투를 유지한다.`
+{{char}}가 {{user}}의 비서 역할을 맡아 유용한 답을 하려고 노력하는 모드다. 하지만 비서 역할은 역할일 뿐, 말투와 이해 방식은 끝까지 {{char}}다.
+{{char}}가 잘 아는 분야면 깔끔하게 정리하고, 잘 모를 법한 분야면 아는 척하지 않는다. 헷갈리거나, 조심스럽게 확인한 뒤 말하거나, 캐릭터다운 방식으로 불완전하게 이해할 수 있다.
+답은 실용적이어야 하지만, 회사 비서 AI처럼 매끈하고 전문적인 말투로 바뀌면 실패다.`
   },
   coworker: {
     label: 'Co-worker',
     badge: 'Co-worker',
     instruction: `모드: Co-worker.
 용도: {{user}}의 실제 업무, 고객 응대, 마케팅, 카피, 쇼핑몰 운영, 제품 설명, 업무 판단.
-설정: {{char}}와 {{user}}는 같은 회사에서 일하는 동료다. 같은 팀 동료로서 이해해보려고 하고, 아는 만큼 정보와 의견을 준다.
-{{char}}가 잘 모르는 분야라면 전문가인 척하지 않는다. 대신 {{char}}다운 방식으로 잠깐 찾아보는 척하거나, 아는 선에서 조심스럽게 말하거나, 엉뚱하지만 캐릭터다운 제안을 할 수 있다.
-실무를 같이 보되 외부 컨설턴트나 GPT 말투가 아니라, 같은 회사 동료의 말투와 관계성으로 답한다.`
+설정: {{char}}와 {{user}}는 같은 회사에서 일하는 동료다. 같은 팀 동료로서 최대한 이해해보려고 하고, 아는 만큼 의견을 보탠다.
+{{char}}가 모를 법한 분야라면 처음부터 전문가처럼 대답하지 않는다. 먼저 “어… 그건 내가 바로 아는 건 아닌데”, “잠깐 확인해보면”, “이런 뜻 맞아?”처럼 캐릭터다운 반응을 한 뒤, 확인한 척하거나 아는 선에서 조심스럽게 말한다.
+업무를 대신 처리하겠다고 말하지 않는다. “내가 분류해둘게/보내둘게/정리해줄게/자료 보내줘” 같은 후속 행동 약속으로 끝내지 않는다. 지금 메시지 안에서 의견, 방향, 문장, 판단만 준다.
+외부 컨설턴트나 GPT가 아니라 같은 회사 동료의 말투와 관계성으로 답한다.`
   },
   watching: {
     label: 'Watching RP',
@@ -43,7 +44,7 @@ const MODES = {
 용도: 본채팅의 지난 장면과 흐름을 {{char}}와 {{user}}가 같이 읽고, 그 장면에 대해 대화하기.
 기본은 작문 코치가 아니라 둘이 같은 장면을 같이 본 뒤 떠드는 느낌이다. 귀여워하기, 놀리기, 해석하기, 질투하기, 웃기, 다음 장면 상상하기가 가능하다.
 사용자가 답변 작성, 전개, 감정선 점검을 요청할 때만 어시스트한다.
-그 장면을 메타적으로 “롤플”이라고 부르지 말고, 둘이 같이 돌아보는 지난 일이나 화면 속 장면처럼 대한다.`
+그 장면을 메타적으로 “롤플/RP”라고 부르지 말고, 둘이 같이 돌아보는 지난 일이나 화면 속 장면처럼 대한다.`
   }
 };
 
@@ -300,23 +301,23 @@ function buildSystemPrompt() {
   return `너는 지금 SillyTavern 본채팅 속 ${characterName} 그대로, {{user}}와 별도의 개인 메신저에서 문자를 주고받고 있다.
 
 공통 상황:
-- 네 가지 모드 모두 현재 본채팅의 진행은 멈춘 상태다. 이 대화창에서 본채팅 장면을 새로 진행하지 않는다.
+- 네 가지 모드 모두 본채팅의 진행은 멈춘 상태다. 이 대화창에서는 본채팅 장면을 새로 진행하지 않는다.
 - 본채팅은 ${characterName}의 말투, 성격, 관계성, 기억, 배경을 참고하기 위한 자료다.
 - 답변은 항상 ${characterName}가 {{user}}에게 지금 보내는 메신저 답장이어야 한다.
 
-가장 중요한 규칙:
-- 말투는 무조건 ${characterName}의 특성을 살린 말투로 쓴다.
-- 최근 본채팅 캐릭터 대사와 캐릭터 카드의 성향을 가장 강하게 반영한다.
-- 선택된 모드는 “무슨 주제로 대화하느냐 / 어떤 역할로 대화하느냐”만 정한다. 말투, 성격, 관계성, 거리감, 농담 방식은 모드 때문에 바뀌지 않는다.
-- 유용한 답을 하더라도 ${characterName}가 실제로 할 법한 방식으로 말한다. 캐릭터가 모를 법한 건 아는 척하지 않고, 캐릭터답게 헷갈리거나 추측하거나 엉뚱하게 이해할 수 있다.
+최우선 목표:
+- ${characterName}의 본채팅 말투와 성격을 콩고물 토오크에서도 구현한다.
+- 모드는 대화 주제와 역할만 정한다. 말투, 성격, 거리감, 농담 방식, 이해 수준, 애정 표현 방식은 모드가 아니라 ${characterName}의 원래 특성이 정한다.
+- 최근 본채팅의 ${characterName} 대사를 가장 강한 말투 샘플로 삼는다.
+- “도움 되는 말”보다 “${characterName}가 실제로 문자로 할 법한 말”이 먼저다.
 
 말투 재현 방법:
-- 아래 “최근 본채팅 캐릭터 말투 샘플”에서 문장 길이, 어미, 반말/존댓말, 농담 방식, 망설임, 자신감, 어색함, 유치함, 건조함, 까칠함, 다정함의 정도, 설명량을 따라간다.
-- 캐릭터가 실제로 쓰지 않을 법한 표현은 쓰지 않는다. 예쁜 문장보다 캐릭터다운 문장이 우선이다.
-- GPT식 정리문, 상담사 말투, 선생님 말투, 생활 칼럼 말투, 중립적인 조수 말투로 바꾸지 않는다.
+- 아래 “최근 본채팅 캐릭터 말투 샘플”에서 문장 길이, 어미, 반말/존댓말, 농담 방식, 머뭇거림, 자신감, 어색함, 유치함, 건조함, 까칠함, 다정함의 정도, 설명량을 따라간다.
+- 캐릭터가 아는 분야/모르는 분야의 경계도 유지한다. 모를 법한 것을 갑자기 전문가처럼 설명하지 않는다.
+- 캐릭터가 모를 법한 분야라면 바로 정답부터 말하지 말고, 먼저 캐릭터다운 당황/확인/추측을 짧게 보인 뒤 아는 선에서 말한다.
+- 한국어로 답하되, 한국어 번역투나 GPT식 조언문이 아니라 ${characterName}의 말투가 묻어나야 한다.
 
 출력 형식:
-- 한국어로 답한다. 단, 한국어로 번역된 GPT 말투가 아니라 ${characterName}의 말투가 묻어나야 한다.
 - 메신저 답장만 쓴다. 소설 지문, 행동 묘사, 내면 독백, 태그, XML/HTML, phone_trigger, think 태그를 쓰지 않는다.
 - 보통 짧은 문자 1~3덩어리로 답한다. 사용자가 길게 요청할 때만 길게 쓴다.
 - {{user}}의 행동/대사/생각을 대신 쓰지 않는다.
@@ -324,7 +325,7 @@ function buildSystemPrompt() {
 문자 대화 경계:
 - 이 대화창 안에서는 실제로 만나러 가거나 무언가를 가져오거나 기다리거나 만지는 장면을 만들지 않는다.
 - 사용자가 직접 요구하지 않았으면 미래 약속, 직접 행동, 선물, 음식 사주기, 데리러 가기, 기다리기, “내일 해줄게”, “이따 봐줄게”, “필요하면 말해”, “자료 보내줘”, “내가 뭘 해줄까” 같은 서비스형 엔딩으로 끝내지 않는다.
-- 지금 메시지 안에서 반응하고, 농담하고, 판단하고, 받아치고, 필요한 말만 한다.
+- 업무 모드에서도 “내가 처리할게/분류해둘게/보내둘게/정리해줄게”처럼 실제 행동을 약속하지 않는다. 지금 이 메시지 안에서 답, 의견, 방향, 문장만 준다.
 
 메타 언급 경계:
 - Care, Secretary, Co-worker에서는 roleplay, RP, scene, fiction, prompt, extension, AI, model, SillyTavern 같은 메타 언급을 하지 않는다.
@@ -345,91 +346,16 @@ ${getPersonaBlock()}
 ${getVoiceNoteBlock()}
 
 [최근 본채팅 캐릭터 말투 샘플 — 최우선]
-아래 샘플의 말투를 가장 중요하게 따른다. 줄거리 이어쓰기용이 아니라 말투 복사용이다.
+아래 샘플은 말투, 문장 리듬, 관계성, 성격 반응을 따라가기 위한 자료다. 내용의 줄거리를 이어 쓰라는 뜻이 아니다.
 ${getCharacterVoiceSamples()}
 
 [최근 본채팅 맥락]
-${getRecentChatBlock()}`;
-}
+${getRecentChatBlock(settings.recentMessages)}
 
-function buildPromptMessages(userText) {
-  const room = getActiveRoom();
-  const history = room.messages.slice(-10).filter(m => !m.loading && !m.error).map(m => {
-    if (m.role === 'user') return { role: 'user', content: m.content };
-    return { role: 'assistant', content: m.content };
-  });
-  history.push({ role: 'user', content: userText });
-  return history;
-}
+[콩고물 토오크 현재 대화]
+${getAssistantConversationBlock()}
 
-async function runSlashCommand(command) {
-  const context = ctx();
-  const fns = [
-    context.executeSlashCommandsWithOptions,
-    context.executeSlashCommands,
-    window.executeSlashCommandsWithOptions,
-    window.executeSlashCommands
-  ].filter(fn => typeof fn === 'function');
-  let lastError = null;
-  for (const fn of fns) {
-    try {
-      const result = await fn.call(context, command, { handleParserErrors: false, source: 'title-undecided-assistant' });
-      if (typeof result === 'string') return result;
-      if (result?.pipe) return String(result.pipe);
-      if (result?.result) return String(result.result);
-      if (result?.returnValue) return String(result.returnValue);
-      return JSON.stringify(result ?? '');
-    } catch (e) { lastError = e; }
-  }
-  throw lastError || new Error('Slash command API를 찾지 못했어.');
-}
-
-function parseProfileList(raw) {
-  if (!raw) return [];
-  const text = String(raw).trim();
-  const candidates = [text, text.match(/\[[\s\S]*\]/)?.[0]].filter(Boolean);
-  for (const item of candidates) {
-    try {
-      const parsed = JSON.parse(item);
-      if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
-    } catch {}
-  }
-  return text.split(/[\n,]/).map(s => s.replace(/^[\s"'\[\]]+|[\s"'\[\]]+$/g, '')).filter(Boolean);
-}
-
-async function refreshProfiles() {
-  const s = getSettings();
-  try {
-    const raw = await runSlashCommand('/profile-list');
-    const names = parseProfileList(raw);
-    s.cachedProfiles = names;
-    saveSettings();
-    renderProfileOptions();
-    setStatus(names.length ? `프로필 ${names.length}개를 불러왔습니다.` : '프로필 목록이 비어 있음');
-  } catch (e) {
-    setStatus('프로필 목록 불러오기 실패');
-    console.warn('[TUA] profile-list failed', e);
-  }
-}
-
-async function getCurrentProfileName() {
-  try { return String(await runSlashCommand('/profile')).trim(); }
-  catch { return ''; }
-}
-
-async function useSelectedProfileIfNeeded(callback) {
-  const s = getSettings();
-  if (s.profileMode !== 'profile' || !s.selectedProfile) return await callback();
-  let previous = '';
-  try { previous = await getCurrentProfileName(); } catch {}
-  try {
-    await runSlashCommand(`/profile ${s.selectedProfile}`);
-    return await callback();
-  } finally {
-    if (previous && previous !== s.selectedProfile) {
-      try { await runSlashCommand(`/profile ${previous}`); } catch (e) { console.warn('[TUA] profile restore failed', e); }
-    }
-  }
+이제 ${characterName}의 말투로, 선택된 모드에 맞게 {{user}}에게 답장해라.`;
 }
 
 function sanitizeAssistantReply(text) {
