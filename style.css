@@ -349,10 +349,7 @@
   z-index: 9998;
 }
 
-#tua-panel {
-  --tua-panel-width: 350px;
-  --tua-panel-height: 520px;
-}
+/* v2.1: keep default/settings-controlled panel size. */
 .tua-title { font-size: calc(var(--tua-font-size) + 1px); }
 .tua-header { padding: 10px 11px 9px; }
 .tua-header-actions button {
@@ -527,4 +524,37 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+
+/* v2.1 repair: room list dropdown + stable input/send layout */
+.tua-room-list.open {
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative;
+  z-index: 3;
+}
+.tua-room-item {
+  min-height: 42px !important;
+  font-size: calc(var(--tua-font-size) - 2px) !important;
+}
+.tua-room-item b { font-size: calc(var(--tua-font-size) - 2px) !important; }
+.tua-room-item small { font-size: calc(var(--tua-font-size) - 5px) !important; }
+.tua-input-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+#tua-input {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+#tua-send {
+  flex: 0 0 32px !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
 }

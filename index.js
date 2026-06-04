@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v2.0
+ * 🐶콩고물 토오크 v2.1
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -497,15 +497,15 @@ function ensurePanel() {
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
-          <button id="tua-settings-open" title="설정">⚙</button>
-          <button id="tua-new-room" title="새 대화방">＋</button>
-          <button id="tua-close" title="닫기">×</button>
+          <button type="button" id="tua-settings-open" title="설정">⚙</button>
+          <button type="button" id="tua-new-room" title="새 대화방">＋</button>
+          <button type="button" id="tua-close" title="닫기">×</button>
         </div>
       </div>
       <div class="tua-roombar">
-        <button id="tua-active-room-title" class="tua-active-room-title" title="대화방 목록 열기"></button>
-        <button id="tua-rename-room">이름 변경</button>
-        <button id="tua-delete-room">방 삭제</button>
+        <button type="button" id="tua-active-room-title" class="tua-active-room-title" title="대화방 목록 열기"></button>
+        <button type="button" id="tua-rename-room">이름 변경</button>
+        <button type="button" id="tua-delete-room">방 삭제</button>
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
       <div id="tua-in-panel-settings" class="tua-in-panel-settings">
@@ -524,7 +524,7 @@ function ensurePanel() {
               <option value="current">현재 선택된 ST 연결</option>
               <option value="profile">저장된 Connection Profile 선택</option>
             </select>
-            <button id="tua-refresh-profiles" title="프로필 목록 새로고침">↻</button>
+            <button type="button" id="tua-refresh-profiles" title="프로필 목록 새로고침">↻</button>
           </div>
         </label>
         <label id="tua-profile-select-wrap">프로필 선택
@@ -548,24 +548,24 @@ function ensurePanel() {
         <label>창 높이(px)
           <input id="tua-panel-height" type="number" min="320" max="1000" step="10">
         </label>
-        <button id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 🐶콩고물 토오크 대화 전체 초기화</button>
+        <button type="button" id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 대화 전체 초기화</button>
         <div id="tua-status" class="tua-status"></div>
       </div>
       <div id="tua-messages" class="tua-messages"></div>
       <div class="tua-input-row">
         <textarea id="tua-input" placeholder="메시지를 입력하세요…"></textarea>
-        <button id="tua-send" title="전송" aria-label="전송">🐶</button>
+        <button type="button" id="tua-send" title="전송" aria-label="전송">🐶</button>
       </div>
     </div>`;
   document.body.appendChild(panelEl);
 
   $('#tua-close').on('click', () => setPanelVisible(false));
   $('#tua-settings-open').on('click', () => $('#tua-in-panel-settings').toggleClass('open'));
-  $('#tua-active-room-title').on('click', () => $('#tua-room-list').toggleClass('open'));
-  $('#tua-new-room').on('click', () => { const r = createRoom(); $('#tua-room-list').removeClass('open'); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
+  $('#tua-active-room-title').on('click', (e) => { e.preventDefault(); toggleRoomList(); });
+  $('#tua-new-room').on('click', (e) => { e.preventDefault(); const r = createRoom(); toggleRoomList(false); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
   $('#tua-delete-room').on('click', () => { if (confirm('이 🐶콩고물 토오크 대화방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
   $('#tua-rename-room').on('click', renameActiveRoom);
-  $('#tua-send').on('click', sendCurrentInput);
+  $('#tua-send').on('click', (e) => { e.preventDefault(); e.stopPropagation(); sendCurrentInput(); });
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
   $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-width,#tua-panel-height').on('change input', readPanelSettingsUI);
@@ -590,12 +590,12 @@ function ensurePanel() {
 }
 
 function resetAllRoomsForCurrentCharacter() {
-  if (!confirm('이 캐릭터와의 🐶콩고물 토오크 대화방을 전부 초기화하시겠습니까?')) return;
+  if (!confirm('이 캐릭터와의 대화를 전부 초기화하시겠습니까?')) return;
   roomState = { rooms: [] };
   createRoom(false);
   saveRooms();
   renderAll();
-  setStatus('🐶콩고물 토오크 대화방을 초기화했습니다.');
+  setStatus('이 캐릭터의 대화를 초기화했습니다.');
 }
 
 function renameActiveRoom() {
@@ -625,7 +625,9 @@ async function sendCurrentInput() {
   if (!text) return;
   input.val('');
   autoGrowInput();
+  if (!activeRoomId || !getActiveRoom()) createRoom(false);
   appendMessage('user', text);
+  setPanelVisible(true);
   const loadingId = 'msg_loading_' + Date.now();
   const room = getActiveRoom();
   room.messages.push({ id: loadingId, role: 'assistant', content: '…', at: Date.now(), loading: true });
@@ -739,6 +741,15 @@ function renderAll() {
   renderRoomList();
   renderMessages();
   applyVisualSettings();
+}
+
+
+function toggleRoomList(force) {
+  const list = $('#tua-room-list');
+  if (!list.length) return;
+  renderRoomList();
+  if (typeof force === 'boolean') list.toggleClass('open', force);
+  else list.toggleClass('open');
 }
 
 function renderRoomList() {
