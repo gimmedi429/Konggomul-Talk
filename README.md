@@ -1,4 +1,4 @@
-# 🐶콩고물 토오크 v1.5
+# 🐶콩고물 토오크 v1.6
 
 SillyTavern companion messenger extension.
 
