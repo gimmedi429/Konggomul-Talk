@@ -1,7 +1,7 @@
-# 🐶콩고물 토오크 v1.4
+# 🐶콩고물 토오크 v1.5
 
 SillyTavern companion messenger extension.
 
-- Fixed input bar sizing.
-- Stronger shared “no physical action” rule across all modes.
-- Stronger character voice lock using recent character samples.
+- Input bar repaired.
+- Stronger no-physical-action messaging rules.
+- Stronger character voice lock.

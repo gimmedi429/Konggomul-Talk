@@ -418,3 +418,36 @@
   align-self: flex-end !important;
   font-size: 16px !important;
 }
+
+/* v1.5 input bar repair */
+.tua-input-row {
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 7px 9px !important;
+  min-height: 48px !important;
+  box-sizing: border-box !important;
+}
+#tua-input {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  min-height: 34px !important;
+  height: 34px;
+  max-height: 88px !important;
+  resize: none !important;
+  overflow-y: hidden;
+  border-radius: 14px !important;
+  padding: 7px 10px !important;
+  line-height: 1.35 !important;
+  box-sizing: border-box !important;
+}
+#tua-send {
+  flex: 0 0 32px !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  align-self: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 15px !important;
+  box-sizing: border-box !important;
+}
