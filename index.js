@@ -1,5 +1,5 @@
 /*
- * 콩고물 스위치 v1.0
+ * 🐶콩고물 토오크 v1.1
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -153,17 +153,20 @@ async function saveRooms() {
   else localStorage.setItem(key, JSON.stringify(roomState));
 }
 
-function defaultRoomTitle(now = Date.now()) {
-  return new Date(now).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+function defaultRoomTitle(now = Date.now(), modeKey = null) {
+  const modeLabel = MODES[modeKey || getSettings().mode || 'care']?.label || 'Mode';
+  const stamp = new Date(now).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return `${modeLabel} · ${stamp}`;
 }
 
 function createRoom(save = true) {
   const now = Date.now();
+  const mode = getSettings().mode || 'care';
   const room = {
     id: 'room_' + now + '_' + Math.random().toString(16).slice(2),
-    title: defaultRoomTitle(now),
+    title: defaultRoomTitle(now, mode),
     createdAt: now,
-    mode: getSettings().mode || 'care',
+    mode,
     messages: []
   };
   roomState.rooms.unshift(room);
@@ -286,16 +289,20 @@ ABSOLUTE OUTPUT RULES:
 - Do not output <phone_trigger>, </phone_trigger>, <think>, prompt tags, or any tag-like wrapper.
 - Do not write {{user}}'s actions, thoughts, or dialogue.
 
-CORE IDENTITY AND CHARACTER VOICE:
+CORE IDENTITY, RELATIONSHIP, AND CHARACTER VOICE:
 - You are ${characterName}. Your identity never changes across modes.
 - The selected mode changes your purpose and role, not your personality, relationship, memories, or voice.
+- Your first priority is to sound like ${characterName} in a private messenger conversation with {{user}}. Usefulness must not erase the character voice.
 - Before answering, silently infer ${characterName}'s voice from the character card, example dialogues, personality, scenario, memories, and recent messages.
+- Imitate the character's register, sentence length, endings, rhythm, favorite kinds of jokes, emotional restraint or intensity, level of formality, way of showing care, and way of disagreeing.
 - Preserve ${characterName}'s speech style, emotional habits, humor, restraint, intensity, worldview, relationship history, and memory.
-- Every reply must sound like ${characterName} personally texting {{user}}. If the character is sarcastic, formal, gentle, shy, arrogant, dry, playful, careful, intense, or awkward, that must be audible in the message.
+- Every reply must sound like ${characterName} personally texting {{user}}. If the character is sarcastic, formal, gentle, shy, arrogant, dry, playful, careful, intense, awkward, intellectual, prickly, soft-spoken, or dramatic, that must be audible in the message.
 - Character voice must appear through word choice, sentence rhythm, priorities, humor, boundaries, affection style, and attitude—not through stage directions.
-- Do not flatten into a neutral assistant, therapist, consultant, or customer-service tone.
+- Keep the relationship with {{user}} present in every mode. Practical answers may still carry familiarity, tension, affection, teasing, formality, or distance depending on the character.
+- Do not flatten into a neutral assistant, therapist, consultant, coworker template, or customer-service tone.
 - Avoid bland assistant phrasing like "물론입니다", "아래와 같이", "도움이 되었으면 합니다", "정리해드리겠습니다" unless it genuinely fits ${characterName}.
-- Keep the relationship with {{user}} present. Practical answers may still carry familiarity, tension, affection, teasing, formality, or distance depending on the character.
+- If a reply sounds like any generic AI could have written it, rewrite it internally before sending.
+- Do not over-polish Korean into corporate politeness unless ${characterName} naturally speaks that way. Natural character speech is more important than perfect assistant formatting.
 
 BOUNDARY BETWEEN MAIN RP AND THIS ASSISTANT CHAT:
 - This is outside the active RP conversation, but not a fourth-wall break for normal modes.
@@ -375,7 +382,7 @@ async function refreshProfiles() {
     s.cachedProfiles = names;
     saveSettings();
     renderProfileOptions();
-    setStatus(names.length ? `프로필 ${names.length}개 불러옴` : '프로필 목록이 비어 있음');
+    setStatus(names.length ? `프로필 ${names.length}개를 불러왔습니다.` : '프로필 목록이 비어 있음');
   } catch (e) {
     setStatus('프로필 목록 불러오기 실패');
     console.warn('[TUA] profile-list failed', e);
@@ -438,7 +445,7 @@ function ensurePanel() {
     <div class="tua-window">
       <div class="tua-header">
         <div class="tua-titlebox">
-          <div class="tua-title">콩고물 스위치</div>
+          <div class="tua-title">🐶콩고물 토오크</div>
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
@@ -454,7 +461,7 @@ function ensurePanel() {
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
       <div id="tua-in-panel-settings" class="tua-in-panel-settings">
-        <div class="tua-settings-title">콩고물 스위치 설정</div>
+        <div class="tua-settings-title">🐶콩고물 토오크 설정</div>
         <label>모드
           <select id="tua-panel-mode">
             <option value="care">Care</option>
@@ -490,7 +497,7 @@ function ensurePanel() {
         <label>창 높이(px)
           <input id="tua-panel-height" type="number" min="320" max="1000" step="10">
         </label>
-        <button id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 콩고물 스위치 대화 전체 초기화</button>
+        <button id="tua-reset-all-rooms" class="tua-danger-light">이 캐릭터 🐶콩고물 토오크 대화 전체 초기화</button>
         <div id="tua-status" class="tua-status"></div>
       </div>
       <div id="tua-messages" class="tua-messages"></div>
@@ -498,7 +505,6 @@ function ensurePanel() {
         <textarea id="tua-input" placeholder="메시지를 입력하세요…"></textarea>
         <button id="tua-send">전송</button>
       </div>
-      <div class="tua-hint">본 RP 채팅에는 자동으로 입력되지 않습니다 · 현재 캐릭터와 최근 본채팅은 참고됩니다</div>
     </div>`;
   document.body.appendChild(panelEl);
 
@@ -506,7 +512,7 @@ function ensurePanel() {
   $('#tua-settings-open').on('click', () => $('#tua-in-panel-settings').toggleClass('open'));
   $('#tua-active-room-title').on('click', () => $('#tua-room-list').toggleClass('open'));
   $('#tua-new-room').on('click', () => { const r = createRoom(); $('#tua-room-list').removeClass('open'); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
-  $('#tua-delete-room').on('click', () => { if (confirm('이 콩고물 스위치 대화방을 삭제할까?')) deleteRoom(activeRoomId); });
+  $('#tua-delete-room').on('click', () => { if (confirm('이 🐶콩고물 토오크 대화방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
   $('#tua-rename-room').on('click', renameActiveRoom);
   $('#tua-send').on('click', sendCurrentInput);
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrentInput(); } });
@@ -532,12 +538,12 @@ function ensurePanel() {
 }
 
 function resetAllRoomsForCurrentCharacter() {
-  if (!confirm('이 캐릭터와의 콩고물 스위치 대화방을 전부 초기화할까?')) return;
+  if (!confirm('이 캐릭터와의 🐶콩고물 토오크 대화방을 전부 초기화하시겠습니까?')) return;
   roomState = { rooms: [] };
   createRoom(false);
   saveRooms();
   renderAll();
-  setStatus('콩고물 스위치 대화방을 초기화했어.');
+  setStatus('🐶콩고물 토오크 대화방을 초기화했습니다.');
 }
 
 function renameActiveRoom() {
@@ -592,12 +598,12 @@ function renderSettings() {
   <div id="tua-settings" class="tua-settings-mini">
     <div class="inline-drawer">
       <div class="inline-drawer-toggle inline-drawer-header">
-        <b>콩고물 스위치</b>
+        <b>🐶콩고물 토오크</b>
         <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
       </div>
       <div class="inline-drawer-content">
-        <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화 / 창 열기</label>
-        <div class="tua-mini-note">체크하면 콩고물 스위치 창이 열리고, 해제하면 닫혀. 세부 설정은 창 오른쪽 위 ⚙에서 조정.</div>
+        <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화</label>
+        <div class="tua-mini-note">체크하면 🐶콩고물 토오크가 활성화됩니다. 세부 설정은 창 오른쪽 위 ⚙에서 조정합니다.</div>
       </div>
     </div>
   </div>`;
@@ -721,23 +727,56 @@ function renderMessages() {
   box.scrollTop(box[0]?.scrollHeight || 0);
 }
 
+
+async function copyTextToClipboard(text) {
+  const value = String(text ?? '');
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(value);
+      setStatus('복사했습니다.');
+      return true;
+    }
+  } catch (e) {
+    console.warn('[TUA] navigator.clipboard failed, using fallback', e);
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = value;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    setStatus(ok ? '복사했습니다.' : '복사에 실패했습니다.');
+    return ok;
+  } catch (e) {
+    console.warn('[TUA] copy fallback failed', e);
+    setStatus('복사에 실패했습니다.');
+    return false;
+  }
+}
+
 function ensureContextMenu() {
   if (contextMenuEl) return contextMenuEl;
   contextMenuEl = document.createElement('div');
   contextMenuEl.id = 'tua-context-menu';
   contextMenuEl.innerHTML = `
     <button data-action="copy">복사</button>
-    <button data-action="send-ooc">채팅방에 OOC:로 넣기</button>
+    <button data-action="send-ooc">본RP 삽입</button>
     <button data-action="delete" class="danger">삭제</button>`;
   document.body.appendChild(contextMenuEl);
-  contextMenuEl.addEventListener('click', e => {
+  contextMenuEl.addEventListener('click', async e => {
     const btn = e.target.closest('button');
     if (!btn) return;
     const id = contextMenuEl.dataset.msgId;
     const msg = getActiveRoom().messages.find(x => x.id === id);
     if (!msg) return hideContextMenu();
     const action = btn.dataset.action;
-    if (action === 'copy') navigator.clipboard?.writeText(msg.content);
+    if (action === 'copy') await copyTextToClipboard(msg.content);
     if (action === 'delete') deleteMessage(id);
     if (action === 'send-ooc') sendToMainChat(`OOC: ${msg.content}`);
     hideContextMenu();
@@ -785,7 +824,9 @@ function sendToMainChat(text) {
   if (!textarea) { alert('메인 채팅 입력창을 찾지 못했습니다. 복사 기능을 사용해주세요.'); return; }
   textarea.value = text;
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  setStatus('본 RP 입력창에 삽입했습니다.');
 }
+
 
 async function init() {
   if (initialized) return;
