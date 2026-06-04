@@ -1,7 +1,46 @@
-# 🐶콩고물 토오크 v2.0
+# 🐶콩고물 토오크 v2.3
 
-SillyTavern extension: character-based companion messenger.
+SillyTavern용 캐릭터 기반 보조 메신저 확장입니다.
 
-- Opens from the normal SillyTavern extension menu row.
-- No separate chat-input launcher button.
-- Main RP is read as context, but assistant messages are not automatically injected.
+## 무엇을 하는 확장인가요?
+
+🐶콩고물 토오크는 현재 선택된 캐릭터와 별도의 작은 메신저 창에서 대화할 수 있게 해주는 확장입니다.
+본 RP 채팅에 대화를 자동으로 넣지 않으면서도, 현재 캐릭터 카드와 페르소나, 최근 본채팅 맥락을 참고해 캐릭터와 따로 문자하듯 대화하는 것을 목표로 합니다.
+
+## 주요 기능
+
+- SillyTavern 확장 메뉴에서 🐶콩고물 토오크 창 열기
+- 현재 캐릭터별로 대화방 저장
+- 대화방마다 모드 고정
+- 대화방 새로 만들기, 이름 변경, 방 삭제
+- 말풍선 우클릭 또는 길게 눌러 복사 / 본RP 삽입 / 삭제
+- 최대 응답 토큰 수, 최근 본채팅 읽을 메시지 수, 폰트 크기, 창 크기 설정
+- 캐릭터 말투 고정 메모 지원
+- 본 RP 채팅에는 자동 삽입하지 않음
+
+## 모드
+
+- **Care**: 현실 고민, 일상 질문, 정서 케어용 모드입니다. 제4의 벽을 부수지 않고, 캐릭터와 따로 문자하는 느낌을 목표로 합니다.
+- **Secretary**: 일정, 할 일, 정리, 우선순위, 간단한 판단 보조용 모드입니다. 캐릭터가 비서 역할을 맡는 구조입니다.
+- **Co-worker**: 같은 회사 동료 설정으로 실제 업무, 고객 대응, 마케팅, 문구, 제품 설명 등을 함께 보는 모드입니다.
+- **Watching RP**: 본 RP 채팅을 같이 보고 이야기하는 모드입니다. 장면 감상, 감정선 해석, 다음 전개 대화, RP 보조에 사용할 수 있습니다.
+
+## 설치
+
+1. ZIP 압축을 풉니다.
+2. GitHub 저장소 루트에 아래 파일을 업로드합니다.
+   - `manifest.json`
+   - `index.js`
+   - `style.css`
+   - `README.md`
+3. SillyTavern에서 `Extensions → Install Extension`에 GitHub 저장소 주소를 넣어 설치합니다.
+4. 설치 후 새로고침하거나 확장을 업데이트합니다.
+
+## 업데이트 메모
+
+### v2.3
+
+- 대화창 배경의 점/모눈 패턴 제거
+- 인절미 톤 단색 배경으로 정리
+- `이 캐릭터 대화 전체 초기화` 버튼 폰트 크기 축소
+- README 설명 보강

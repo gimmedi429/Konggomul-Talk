@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v2.1
+ * 🐶콩고물 토오크 v2.2
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -278,6 +278,22 @@ function getRecentChatBlock() {
     const text = m.mes || m.message || '';
     return `${i + 1}. ${role}: ${text}`;
   }).join('\n');
+}
+
+
+function getVoiceNote() {
+  return String(roomState?.voiceNote || '');
+}
+
+function setVoiceNote(text) {
+  if (!roomState) roomState = { rooms: [] };
+  roomState.voiceNote = String(text || '');
+  saveRooms();
+}
+
+function getVoiceNoteBlock() {
+  const note = getVoiceNote().trim();
+  return note || 'No manual character voice note was provided. Rely on the character card, example dialogue, and recent character voice samples.';
 }
 
 function getCharacterVoiceSamples() {
