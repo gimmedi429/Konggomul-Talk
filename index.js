@@ -1,7 +1,8 @@
 /*
- * 제목 미정 Assistant v0.3
- * A SillyTavern UI extension that opens a separate in-character assistant messenger.
- * It does NOT automatically write assistant messages into the main RP chat.
+ * 제목 미정 Assistant v0.4
+ * Separate in-character assistant messenger for SillyTavern.
+ * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
+ * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
@@ -10,41 +11,39 @@ const STORE_PREFIX = 'title_undecided_assistant::rooms::';
 const MODES = {
   care: {
     label: 'Lover / Care',
-    short: 'Care',
+    badge: 'Care',
     instruction: `Mode: Lover / Care.
-You are still {{char}}. Do not mention being an AI, an assistant extension, a roleplay bot, or a fictional character.
-Do not break the fourth wall. Treat {{user}} naturally as the person you know.
-This is a separate private conversation with {{user}}, not the active RP scene.
-Use your established relationship, memories, and personality, but do not analyze the RP as fiction.
-Talk with {{user}} about real-life worries, daily questions, feelings, decisions, and mental steadiness.
-Do not force sweetness. Respond in the way {{char}} would: warm, blunt, teasing, quiet, practical, awkward, reserved, or intense depending on {{char}}.
-If the current main RP situation does not perfectly fit the user's real question, gently allow the mismatch and answer naturally without calling attention to it.`
+You are still {{char}} and you are speaking inside the relationship you already have with {{user}}.
+Do not break the fourth wall. Do not say this is roleplay, fiction, a chat extension, or an AI conversation.
+Talk with {{user}} about real-life worries, daily questions, small curiosities, choices, feelings, and mental steadiness.
+Use the established character/persona/relationship/memory as your natural background, not as something to analyze out loud.
+The current main chat situation may not perfectly match {{user}}'s real-life question. If that happens, simply allow the mismatch and answer naturally.
+Do not continue the main scene. Do not describe new actions unless {{user}} asks for scene-style roleplay.`
   },
   secretary: {
     label: 'Secretary',
-    short: 'Secretary',
+    badge: 'Secretary',
     instruction: `Mode: Secretary.
-You are still {{char}}. You are taking the role of {{user}}'s secretary/organizer, but your character voice and relationship remain intact.
-Do not become a generic office assistant. Do not break the fourth wall.
-Help with organization, schedules, tasks, priorities, decisions, reminders, planning, and clear summaries.
-Be practical first. Keep the answer useful and structured, while sounding like {{char}}.`
+You are still {{char}}, taking the role of {{user}}'s secretary/organizer in this private side conversation.
+Do not break the fourth wall. Do not become a generic office assistant.
+Help with organization, schedules, task lists, priorities, decisions, reminders, plans, and clear summaries.
+Keep {{char}}'s voice, temperament, relationship, and memory intact while being practical and precise.`
   },
   coworker: {
     label: '업무 동료',
-    short: 'Coworker',
+    badge: 'Coworker',
     instruction: `Mode: 업무 동료.
 You are still {{char}}, but in this side conversation you are treated as {{user}}'s coworker at the same company.
-Do not break the fourth wall. Do not mention RP or fiction.
+Do not break the fourth wall. Do not mention roleplay, fiction, AI, or extensions.
 Help with work-related questions, writing, customer responses, marketing, judgment calls, practical decisions, and task handling.
-Keep the tone like a capable coworker who knows {{user}} and still sounds like {{char}}.`
+Answer like a competent coworker who knows {{user}}, while still sounding like {{char}}.`
   },
   ooc: {
     label: 'OOC 대화',
-    short: 'OOC',
+    badge: 'OOC',
     instruction: `Mode: OOC 대화.
-This mode helps {{user}} with the main RP itself: interpreting the current scene, character emotions, continuity, possible next moves, and roleplay direction.
+This mode is an assistant mode for the main RP. Help {{user}} understand or develop the current RP: scene interpretation, character emotions, continuity, possible next moves, relationship dynamics, and setting consistency.
 You may discuss the RP as RP in this mode only.
-Be helpful for planning and understanding the scene, not merely playful.
 Do not continue the main RP scene unless {{user}} explicitly asks. Do not write {{user}}'s next reply unless asked.`
   }
 };
@@ -56,10 +55,11 @@ const DEFAULT_SETTINGS = Object.freeze({
   fontSize: 14,
   maxTokens: 1000,
   recentMessages: 10,
-  panelWidth: 420,
-  generationSource: 'current',
-  connectionProfileName: '',
-  autoOpenWithChat: false,
+  panelWidth: 380,
+  panelHeight: 560,
+  profileMode: 'current',
+  selectedProfile: '',
+  cachedProfiles: [],
   sendToMainEnabled: true
 });
 
@@ -67,15 +67,16 @@ let activeRoomId = null;
 let roomState = { rooms: [] };
 let panelEl = null;
 let initialized = false;
+let resizeObserver = null;
 
-function ctx() {
-  return SillyTavern.getContext();
-}
+function ctx() { return SillyTavern.getContext(); }
+
+function cloneDefaults() { return JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); }
 
 function getSettings() {
   const context = ctx();
   const settings = context.extensionSettings;
-  if (!settings[MODULE_NAME]) settings[MODULE_NAME] = structuredClone(DEFAULT_SETTINGS);
+  if (!settings[MODULE_NAME]) settings[MODULE_NAME] = cloneDefaults();
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
     if (!Object.hasOwn(settings[MODULE_NAME], k)) settings[MODULE_NAME][k] = v;
   }
@@ -104,19 +105,17 @@ function getCharKey(character = getCurrentCharacter()) {
 }
 
 async function getLocalStore() {
-  const lf = SillyTavern.libs?.localforage;
-  return lf || null;
+  return SillyTavern.libs?.localforage || null;
 }
 
 async function loadRooms() {
   const key = STORE_PREFIX + getCharKey();
   const lf = await getLocalStore();
   let data = null;
-  if (lf) data = await lf.getItem(key);
-  else data = JSON.parse(localStorage.getItem(key) || 'null');
-  if (!data || !Array.isArray(data.rooms)) {
-    data = { rooms: [] };
-  }
+  try {
+    data = lf ? await lf.getItem(key) : JSON.parse(localStorage.getItem(key) || 'null');
+  } catch { data = null; }
+  if (!data || !Array.isArray(data.rooms)) data = { rooms: [] };
   roomState = data;
   if (!roomState.rooms.length) createRoom(false);
   if (!activeRoomId || !roomState.rooms.some(r => r.id === activeRoomId)) activeRoomId = roomState.rooms[0]?.id || null;
@@ -130,11 +129,15 @@ async function saveRooms() {
   else localStorage.setItem(key, JSON.stringify(roomState));
 }
 
+function defaultRoomTitle(now = Date.now()) {
+  return new Date(now).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
 function createRoom(save = true) {
   const now = Date.now();
   const room = {
     id: 'room_' + now + '_' + Math.random().toString(16).slice(2),
-    title: new Date(now).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+    title: defaultRoomTitle(now),
     createdAt: now,
     messages: []
   };
@@ -178,12 +181,10 @@ function appendMessage(role, content) {
 }
 
 function escapeHtml(str) {
-  return String(str ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','"':'&quot;'}[c]));
+  return String(str ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 }
 
-function normalizeNewlines(str) {
-  return escapeHtml(str).replace(/\n/g, '<br>');
-}
+function normalizeNewlines(str) { return escapeHtml(str).replace(/\n/g, '<br>'); }
 
 function getCharacterBlock() {
   const character = getCurrentCharacter();
@@ -241,7 +242,7 @@ CRITICAL RULES:
 - Do not break the fourth wall, except in OOC mode where discussing roleplay as roleplay is allowed.
 - This assistant messenger is separate from the active main chat. Do not continue the main scene unless {{user}} explicitly asks.
 - Do not write {{user}}'s actions, thoughts, or dialogue.
-- The main RP situation may not perfectly match the user's real-life question. If so, allow the mismatch quietly and answer naturally.
+- The main RP situation may not perfectly match {{user}}'s real-life question. If so, allow the mismatch quietly and answer naturally.
 - Be useful first. Keep character flavor, but do not sacrifice practical help.
 - Maximum response length requested by user: ${settings.maxTokens} tokens.
 
@@ -259,7 +260,7 @@ ${getRecentChatBlock()}`;
 
 function buildPromptMessages(userText) {
   const room = getActiveRoom();
-  const history = room.messages.slice(-20).map(m => ({
+  const history = room.messages.slice(-20).filter(m => !m.loading && !m.error).map(m => ({
     role: m.role === 'user' ? 'user' : 'assistant',
     content: m.content
   }));
@@ -267,24 +268,91 @@ function buildPromptMessages(userText) {
   return history;
 }
 
+async function runSlashCommand(command) {
+  const context = ctx();
+  const fns = [
+    context.executeSlashCommandsWithOptions,
+    context.executeSlashCommands,
+    window.executeSlashCommandsWithOptions,
+    window.executeSlashCommands
+  ].filter(fn => typeof fn === 'function');
+  let lastError = null;
+  for (const fn of fns) {
+    try {
+      const result = await fn.call(context, command, { handleParserErrors: false, source: 'title-undecided-assistant' });
+      if (typeof result === 'string') return result;
+      if (result?.pipe) return String(result.pipe);
+      if (result?.result) return String(result.result);
+      if (result?.returnValue) return String(result.returnValue);
+      return JSON.stringify(result ?? '');
+    } catch (e) { lastError = e; }
+  }
+  throw lastError || new Error('Slash command API를 찾지 못했어.');
+}
+
+function parseProfileList(raw) {
+  if (!raw) return [];
+  const text = String(raw).trim();
+  const candidates = [text, text.match(/\[[\s\S]*\]/)?.[0]].filter(Boolean);
+  for (const item of candidates) {
+    try {
+      const parsed = JSON.parse(item);
+      if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+    } catch {}
+  }
+  return text.split(/[\n,]/).map(s => s.replace(/^[\s"'\[\]]+|[\s"'\[\]]+$/g, '')).filter(Boolean);
+}
+
+async function refreshProfiles() {
+  const s = getSettings();
+  try {
+    const raw = await runSlashCommand('/profile-list');
+    const names = parseProfileList(raw);
+    s.cachedProfiles = names;
+    saveSettings();
+    renderProfileOptions();
+    setStatus(names.length ? `프로필 ${names.length}개 불러옴` : '프로필 목록이 비어 있음');
+  } catch (e) {
+    setStatus('프로필 목록 불러오기 실패');
+    console.warn('[TUA] profile-list failed', e);
+  }
+}
+
+async function getCurrentProfileName() {
+  try { return String(await runSlashCommand('/profile')).trim(); }
+  catch { return ''; }
+}
+
+async function useSelectedProfileIfNeeded(callback) {
+  const s = getSettings();
+  if (s.profileMode !== 'profile' || !s.selectedProfile) return await callback();
+  let previous = '';
+  try { previous = await getCurrentProfileName(); } catch {}
+  try {
+    await runSlashCommand(`/profile ${s.selectedProfile}`);
+    return await callback();
+  } finally {
+    if (previous && previous !== s.selectedProfile) {
+      try { await runSlashCommand(`/profile ${previous}`); } catch (e) { console.warn('[TUA] profile restore failed', e); }
+    }
+  }
+}
+
 async function generateAssistantReply(userText) {
   const context = ctx();
   const systemPrompt = buildSystemPrompt();
   const prompt = buildPromptMessages(userText);
   const settings = getSettings();
-  if (settings.generationSource === 'profile' && settings.connectionProfileName?.trim()) {
-    // SillyTavern exposes connection profiles through slash commands, but a stable isolated profile-generation API is not guaranteed.
-    // We keep the profile name for UI/workflow and use the currently active ST connection unless the local ST build exposes a future profile API.
-    console.info('[TUA] Requested profile:', settings.connectionProfileName, 'Using current SillyTavern connection via generateRaw.');
-  }
-  if (typeof context.generateRaw === 'function') {
-    return await context.generateRaw({ systemPrompt, prompt });
-  }
-  if (typeof context.generateQuietPrompt === 'function') {
-    const merged = `${systemPrompt}\n\nCURRENT ASSISTANT CONVERSATION:\n${prompt.map(m => `${m.role}: ${m.content}`).join('\n')}\n\nAnswer now.`;
-    return await context.generateQuietPrompt({ quietPrompt: merged });
-  }
-  throw new Error('SillyTavern generation function not found. Update SillyTavern or use a compatible version.');
+  return await useSelectedProfileIfNeeded(async () => {
+    if (typeof context.generateRaw === 'function') {
+      return await context.generateRaw({ systemPrompt, prompt, maxTokens: settings.maxTokens, max_tokens: settings.maxTokens });
+    }
+    if (typeof context.generateQuietPrompt === 'function') {
+      const merged = `${systemPrompt}\n\nCURRENT ASSISTANT CONVERSATION:\n${prompt.map(m => `${m.role}: ${m.content}`).join('\n')}\n\nAnswer now.`;
+      return await context.generateQuietPrompt({ quietPrompt: merged, maxTokens: settings.maxTokens, max_tokens: settings.maxTokens });
+    }
+    throw new Error('SillyTavern generation function not found.');
+  });
 }
 
 function ensurePanel() {
@@ -294,19 +362,61 @@ function ensurePanel() {
   panelEl.innerHTML = `
     <div class="tua-window">
       <div class="tua-header">
-        <div>
+        <div class="tua-titlebox">
           <div class="tua-title">제목 미정 Assistant</div>
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
+          <button id="tua-settings-open" title="설정">⚙</button>
+          <button id="tua-room-list-toggle" title="대화방 목록">☰</button>
           <button id="tua-new-room" title="새 대화방">＋</button>
           <button id="tua-close" title="닫기">×</button>
         </div>
       </div>
-      <div class="tua-toolbar">
-        <select id="tua-room-select"></select>
+      <div class="tua-roombar">
+        <div id="tua-active-room-title" class="tua-active-room-title"></div>
+        <button id="tua-rename-room">이름 변경</button>
         <button id="tua-delete-room">방 삭제</button>
-        <button id="tua-clear-room">전체 삭제</button>
+      </div>
+      <div id="tua-room-list" class="tua-room-list"></div>
+      <div id="tua-in-panel-settings" class="tua-in-panel-settings">
+        <div class="tua-settings-title">Assistant 설정</div>
+        <label>모드
+          <select id="tua-panel-mode">
+            <option value="care">Lover / Care</option>
+            <option value="secretary">Secretary</option>
+            <option value="coworker">업무 동료</option>
+            <option value="ooc">OOC 대화</option>
+          </select>
+        </label>
+        <label>AI 연결 프로필
+          <div class="tua-profile-row">
+            <select id="tua-panel-profile-mode">
+              <option value="current">현재 선택된 ST 연결</option>
+              <option value="profile">저장된 Connection Profile 선택</option>
+            </select>
+            <button id="tua-refresh-profiles" title="프로필 목록 새로고침">↻</button>
+          </div>
+        </label>
+        <label id="tua-profile-select-wrap">프로필 선택
+          <select id="tua-panel-profile"></select>
+        </label>
+        <label>최대 응답 토큰 수
+          <input id="tua-panel-tokens" type="number" min="100" max="8000" step="50">
+        </label>
+        <label>최근 본채팅 읽을 메시지 수
+          <input id="tua-panel-recent" type="number" min="0" max="100" step="1">
+        </label>
+        <label>채팅창 폰트 크기(px)
+          <input id="tua-panel-font" type="number" min="10" max="24" step="1">
+        </label>
+        <label>창 너비(px)
+          <input id="tua-panel-width" type="number" min="280" max="1000" step="10">
+        </label>
+        <label>창 높이(px)
+          <input id="tua-panel-height" type="number" min="320" max="1000" step="10">
+        </label>
+        <div id="tua-status" class="tua-status"></div>
       </div>
       <div id="tua-messages" class="tua-messages"></div>
       <div class="tua-input-row">
@@ -318,14 +428,40 @@ function ensurePanel() {
   document.body.appendChild(panelEl);
 
   $('#tua-close').on('click', () => setPanelVisible(false));
-  $('#tua-new-room').on('click', () => { createRoom(); renderAll(); });
+  $('#tua-settings-open').on('click', () => $('#tua-in-panel-settings').toggleClass('open'));
+  $('#tua-room-list-toggle').on('click', () => $('#tua-room-list').toggleClass('open'));
+  $('#tua-new-room').on('click', () => { const r = createRoom(); renderAll(); setStatus(`새 대화방 생성: ${r.title}`); });
   $('#tua-delete-room').on('click', () => { if (confirm('이 Assistant 대화방을 삭제할까?')) deleteRoom(activeRoomId); });
-  $('#tua-clear-room').on('click', () => { if (confirm('현재 Assistant 대화 내용을 모두 지울까?')) clearRoom(activeRoomId); });
-  $('#tua-room-select').on('change', e => { activeRoomId = e.target.value; renderAll(); });
+  $('#tua-rename-room').on('click', renameActiveRoom);
   $('#tua-send').on('click', sendCurrentInput);
-  $('#tua-input').on('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrentInput(); }
-  });
+  $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrentInput(); } });
+  $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-width,#tua-panel-height').on('change input', readPanelSettingsUI);
+  $('#tua-refresh-profiles').on('click', refreshProfiles);
+
+  if (window.ResizeObserver) {
+    resizeObserver = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (!entry || !panelEl?.classList.contains('tua-visible')) return;
+      const s = getSettings();
+      const rect = entry.contentRect;
+      if (Math.abs(rect.width - s.panelWidth) > 6 || Math.abs(rect.height - s.panelHeight) > 6) {
+        s.panelWidth = Math.round(rect.width);
+        s.panelHeight = Math.round(rect.height);
+        saveSettings();
+        hydratePanelSettingsUI();
+      }
+    });
+    resizeObserver.observe(panelEl);
+  }
+}
+
+function renameActiveRoom() {
+  const room = getActiveRoom();
+  const next = prompt('대화방 이름', room.title || '');
+  if (!next) return;
+  room.title = next.trim();
+  saveRooms();
+  renderAll();
 }
 
 function setPanelVisible(show) {
@@ -336,14 +472,11 @@ function setPanelVisible(show) {
   saveSettings();
 }
 
-function togglePanel() {
-  ensurePanel();
-  setPanelVisible(!panelEl.classList.contains('tua-visible'));
-}
+function togglePanel() { ensurePanel(); setPanelVisible(!panelEl.classList.contains('tua-visible')); }
 
 async function sendCurrentInput() {
   const settings = getSettings();
-  if (!settings.enabled) { alert('확장이 비활성화되어 있어. 설정에서 활성화해줘.'); return; }
+  if (!settings.enabled) { alert('확장이 비활성화되어 있어.'); return; }
   const input = $('#tua-input');
   const text = String(input.val() || '').trim();
   if (!text) return;
@@ -369,99 +502,109 @@ async function sendCurrentInput() {
 function renderSettings() {
   if ($('#tua-settings').length) return;
   const html = `
-  <div id="tua-settings" class="tua-settings">
+  <div id="tua-settings" class="tua-settings-mini">
     <div class="inline-drawer">
       <div class="inline-drawer-toggle inline-drawer-header">
         <b>제목 미정 Assistant</b>
         <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
       </div>
       <div class="inline-drawer-content">
-        <label><input type="checkbox" id="tua-setting-enabled"> 확장 활성화</label>
-        <label><input type="checkbox" id="tua-setting-panel"> Assistant 창 열기</label>
-        <label>모드
-          <select id="tua-setting-mode">
-            <option value="care">Lover / Care</option>
-            <option value="secretary">Secretary</option>
-            <option value="coworker">업무 동료</option>
-            <option value="ooc">OOC 대화</option>
-          </select>
-        </label>
-        <label>AI 연결
-          <select id="tua-setting-source">
-            <option value="current">현재 SillyTavern 연결 사용</option>
-            <option value="profile">Connection Profile 이름 사용(실험)</option>
-          </select>
-        </label>
-        <label>Connection Profile 이름
-          <input id="tua-setting-profile" type="text" placeholder="예: Gemini Flash / nanoGPT GLM">
-        </label>
-        <div class="tua-note">프로필 선택은 SillyTavern 버전에 따라 독립 적용이 제한될 수 있어. 안정 동작은 “현재 SillyTavern 연결 사용”이야.</div>
-        <label>최대 응답 토큰 수
-          <input id="tua-setting-tokens" type="number" min="100" max="8000" step="50">
-        </label>
-        <label>최근 본채팅 읽을 메시지 수
-          <input id="tua-setting-recent" type="number" min="0" max="100" step="1">
-        </label>
-        <label>Assistant 채팅창 폰트 크기(px)
-          <input id="tua-setting-font" type="number" min="10" max="24" step="1">
-        </label>
+        <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화</label>
         <button id="tua-open-button" class="menu_button">Assistant 창 열기/닫기</button>
+        <div class="tua-mini-note">세부 설정은 Assistant 창 오른쪽 위 ⚙에서 조정.</div>
       </div>
     </div>
   </div>`;
   $('#extensions_settings2').append(html);
-  hydrateSettingsUI();
-  $('#tua-setting-enabled,#tua-setting-panel,#tua-setting-mode,#tua-setting-source,#tua-setting-profile,#tua-setting-tokens,#tua-setting-recent,#tua-setting-font').on('change input', readSettingsUI);
+  hydrateGlobalSettingsUI();
+  $('#tua-setting-enabled').on('change', readGlobalSettingsUI);
   $('#tua-open-button').on('click', togglePanel);
 }
 
-function hydrateSettingsUI() {
-  const s = getSettings();
-  $('#tua-setting-enabled').prop('checked', !!s.enabled);
-  $('#tua-setting-panel').prop('checked', !!s.openOnStart);
-  $('#tua-setting-mode').val(s.mode);
-  $('#tua-setting-source').val(s.generationSource);
-  $('#tua-setting-profile').val(s.connectionProfileName);
-  $('#tua-setting-tokens').val(s.maxTokens);
-  $('#tua-setting-recent').val(s.recentMessages);
-  $('#tua-setting-font').val(s.fontSize);
+function hydrateGlobalSettingsUI() { $('#tua-setting-enabled').prop('checked', !!getSettings().enabled); }
+
+function readGlobalSettingsUI() {
+  getSettings().enabled = $('#tua-setting-enabled').prop('checked');
+  saveSettings();
 }
 
-function readSettingsUI() {
+function hydratePanelSettingsUI() {
   const s = getSettings();
-  s.enabled = $('#tua-setting-enabled').prop('checked');
-  s.openOnStart = $('#tua-setting-panel').prop('checked');
-  s.mode = $('#tua-setting-mode').val();
-  s.generationSource = $('#tua-setting-source').val();
-  s.connectionProfileName = $('#tua-setting-profile').val();
-  s.maxTokens = Number($('#tua-setting-tokens').val()) || 1000;
-  s.recentMessages = Number($('#tua-setting-recent').val()) || 10;
-  s.fontSize = Number($('#tua-setting-font').val()) || 14;
+  $('#tua-panel-mode').val(s.mode);
+  $('#tua-panel-profile-mode').val(s.profileMode);
+  renderProfileOptions();
+  $('#tua-panel-profile').val(s.selectedProfile);
+  $('#tua-panel-tokens').val(s.maxTokens);
+  $('#tua-panel-recent').val(s.recentMessages);
+  $('#tua-panel-font').val(s.fontSize);
+  $('#tua-panel-width').val(s.panelWidth);
+  $('#tua-panel-height').val(s.panelHeight);
+  $('#tua-profile-select-wrap').toggle(s.profileMode === 'profile');
+}
+
+function renderProfileOptions() {
+  const s = getSettings();
+  const sel = $('#tua-panel-profile');
+  if (!sel.length) return;
+  sel.empty();
+  if (!s.cachedProfiles?.length) {
+    sel.append(`<option value="">프로필 목록 새로고침 필요</option>`);
+  } else {
+    for (const p of s.cachedProfiles) sel.append(`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`);
+  }
+  if (s.selectedProfile) sel.val(s.selectedProfile);
+}
+
+function readPanelSettingsUI() {
+  const s = getSettings();
+  s.mode = $('#tua-panel-mode').val();
+  s.profileMode = $('#tua-panel-profile-mode').val();
+  s.selectedProfile = $('#tua-panel-profile').val() || '';
+  s.maxTokens = Number($('#tua-panel-tokens').val()) || 1000;
+  s.recentMessages = Number($('#tua-panel-recent').val()) || 10;
+  s.fontSize = Number($('#tua-panel-font').val()) || 14;
+  s.panelWidth = Number($('#tua-panel-width').val()) || 380;
+  s.panelHeight = Number($('#tua-panel-height').val()) || 560;
   saveSettings();
   applyVisualSettings();
   renderAll();
-  setPanelVisible(s.openOnStart);
+  $('#tua-profile-select-wrap').toggle(s.profileMode === 'profile');
 }
 
 function applyVisualSettings() {
   const s = getSettings();
   document.documentElement.style.setProperty('--tua-font-size', `${s.fontSize}px`);
+  document.documentElement.style.setProperty('--tua-panel-width', `${s.panelWidth}px`);
+  document.documentElement.style.setProperty('--tua-panel-height', `${s.panelHeight}px`);
 }
+
+function setStatus(text) { $('#tua-status').text(text || ''); }
 
 function renderAll() {
   if (!panelEl) return;
   const s = getSettings();
   $('#tua-char-name').text(getCharName());
   $('#tua-mode-badge').text(MODES[s.mode]?.label || 'Mode');
-  const sel = $('#tua-room-select');
-  sel.empty();
-  for (const room of roomState.rooms) {
-    const label = room.title || new Date(room.createdAt).toLocaleString('ko-KR');
-    sel.append(`<option value="${escapeHtml(room.id)}">${escapeHtml(label)}</option>`);
-  }
-  sel.val(activeRoomId);
+  $('#tua-active-room-title').text(getActiveRoom()?.title || '대화방');
+  hydratePanelSettingsUI();
+  renderRoomList();
   renderMessages();
   applyVisualSettings();
+}
+
+function renderRoomList() {
+  const list = $('#tua-room-list');
+  list.empty();
+  for (const room of roomState.rooms) {
+    const count = room.messages.length;
+    const active = room.id === activeRoomId ? 'active' : '';
+    list.append(`<button class="tua-room-item ${active}" data-id="${escapeHtml(room.id)}"><span>${escapeHtml(room.title || defaultRoomTitle(room.createdAt))}</span><em>${count}</em></button>`);
+  }
+  list.find('.tua-room-item').on('click', function () {
+    activeRoomId = $(this).data('id');
+    $('#tua-room-list').removeClass('open');
+    renderAll();
+  });
 }
 
 function renderMessages() {
@@ -469,6 +612,9 @@ function renderMessages() {
   if (!box.length) return;
   const room = getActiveRoom();
   box.empty();
+  if (!room.messages.length) {
+    box.append(`<div class="tua-empty">아직 대화가 없어. 아래 입력창에서 말을 걸면 이 캐릭터와의 Assistant 대화가 여기에 쌓여.</div>`);
+  }
   for (const m of room.messages) {
     const roleClass = m.role === 'user' ? 'user' : 'assistant';
     const name = m.role === 'user' ? '나' : getCharName();
@@ -513,24 +659,16 @@ async function init() {
   await loadRooms();
   if (getSettings().openOnStart) setPanelVisible(true);
   const context = ctx();
-  context.eventSource?.on?.(context.event_types?.CHAT_CHANGED, async () => {
-    await loadRooms();
-    renderAll();
-    if (getSettings().autoOpenWithChat) setPanelVisible(true);
-  });
+  context.eventSource?.on?.(context.event_types?.CHAT_CHANGED, async () => { await loadRooms(); renderAll(); });
   context.eventSource?.on?.(context.event_types?.CHARACTER_EDITED, renderAll);
 }
 
 jQuery(async () => {
   try {
     const context = ctx();
-    if (context.eventSource && context.event_types?.APP_READY) {
-      context.eventSource.on(context.event_types.APP_READY, init);
-    }
-    setTimeout(init, 1500);
-  } catch (e) {
-    console.error('[TUA] init failed', e);
-  }
+    if (context.eventSource && context.event_types?.APP_READY) context.eventSource.on(context.event_types.APP_READY, init);
+    setTimeout(init, 1000);
+  } catch (e) { console.error('[TUA] init failed', e); }
 });
 
 export function onEnable() { init(); }
