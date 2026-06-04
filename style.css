@@ -598,3 +598,8 @@
 #tua-panel.tua-dragging {
   user-select: none;
 }
+
+/* v2.8: robust draggable popup */
+.tua-header { cursor: grab; user-select: none; }
+#tua-panel.tua-dragging .tua-header { cursor: grabbing; }
+body.tua-panel-dragging-body { user-select: none !important; }
