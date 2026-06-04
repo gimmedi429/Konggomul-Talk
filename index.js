@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v2.9
+ * 🐶콩고물 토오크 v3.0
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -291,6 +291,33 @@ function getCharacterVoiceSamples() {
     .filter(Boolean);
   if (!samples.length) return 'No recent character voice samples were detected. Use the character card and example dialogues more strongly.';
   return samples.join('\n');
+}
+
+
+function getAssistantConversationBlock() {
+  const room = getActiveRoom();
+  if (!room || !Array.isArray(room.messages) || !room.messages.length) return 'No prior Konggomul Talk messages in this room.';
+  const messages = room.messages
+    .filter(m => !m.loading && !m.error && String(m.content || '').trim())
+    .slice(-12)
+    .map((m, i) => {
+      const who = m.role === 'user' ? '{{user}}' : getCharName();
+      return `${i + 1}. ${who}: ${String(m.content || '').replace(/<[^>]+>/g, '').trim().slice(0, 1200)}`;
+    });
+  return messages.length ? messages.join('\n') : 'No prior Konggomul Talk messages in this room.';
+}
+
+function buildPromptMessages(userText) {
+  const room = getActiveRoom();
+  const history = (room?.messages || [])
+    .filter(m => !m.loading && !m.error && String(m.content || '').trim())
+    .slice(-10)
+    .map(m => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: String(m.content || '')
+    }));
+  history.push({ role: 'user', content: String(userText || '') });
+  return history;
 }
 
 function buildSystemPrompt() {
