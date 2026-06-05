@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v3.9
+ * 🐶콩고물 토오크 v3.9.1
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -90,6 +90,7 @@ let longPressTimer = null;
 let initialized = false;
 let resizeObserver = null;
 let draggingPanel = null;
+let collapsedButtonSuppressClick = false;
 
 function ctx() { return SillyTavern.getContext(); }
 
@@ -617,7 +618,6 @@ function ensurePanel() {
         <div class="tua-header-actions">
           <button type="button" id="tua-collapse" title="접기">—</button>
           <button type="button" id="tua-settings-open" title="설정">⚙</button>
-          <button type="button" id="tua-new-room" title="새 대화방">＋</button>
           <button type="button" id="tua-close" title="닫기">×</button>
         </div>
       </div>
@@ -625,6 +625,7 @@ function ensurePanel() {
         <button type="button" id="tua-active-room-title" class="tua-active-room-title" title="대화방 목록 열기"></button>
         <button type="button" id="tua-rename-room">이름 변경</button>
         <button type="button" id="tua-pin-room" title="대화방 고정/해제">📌</button>
+        <button type="button" id="tua-new-room" title="새 대화방">＋</button>
         <button type="button" id="tua-delete-room" title="대화방 삭제">🗑️</button>
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
@@ -688,7 +689,7 @@ function ensurePanel() {
 
   $('#tua-close').on('click', () => setPanelVisible(false));
   $('#tua-collapse').on('click', (e) => { e.preventDefault(); e.stopPropagation(); setPanelCollapsed(true); });
-  $('#tua-collapsed-button').on('click', (e) => { e.preventDefault(); e.stopPropagation(); setPanelCollapsed(false); setPanelVisible(true); });
+  $('#tua-collapsed-button').on('click', (e) => { e.preventDefault(); e.stopPropagation(); if (collapsedButtonSuppressClick) { collapsedButtonSuppressClick = false; return; } setPanelCollapsed(false); setPanelVisible(true); });
   $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); $('#tua-in-panel-settings').toggleClass('open'); });
   $('#tua-active-room-title').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); toggleRoomList(); });
   $('#tua-new-room').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); const r = createRoom(); toggleRoomList(false); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
@@ -764,15 +765,19 @@ function makePanelDraggable() {
   if (!panelEl || panelEl.dataset.draggableReady === '1') return;
   panelEl.dataset.draggableReady = '1';
   const header = panelEl.querySelector('.tua-header');
-  if (!header) return;
+  const collapsedButton = panelEl.querySelector('#tua-collapsed-button');
 
-  const startDrag = (clientX, clientY, pointerId, originalEvent) => {
-    if (originalEvent?.target?.closest?.('button, select, input, textarea')) return;
+  const startDrag = (clientX, clientY, pointerId, originalEvent, options = {}) => {
+    if (!options.allowButton && originalEvent?.target?.closest?.('button, select, input, textarea')) return;
     const rect = panelEl.getBoundingClientRect();
     draggingPanel = {
       offsetX: clientX - rect.left,
       offsetY: clientY - rect.top,
-      pointerId
+      startX: clientX,
+      startY: clientY,
+      pointerId,
+      moved: false,
+      collapsedButton: !!options.collapsedButton
     };
     panelEl.classList.add('tua-dragging');
     document.body.classList.add('tua-panel-dragging-body');
@@ -781,6 +786,7 @@ function makePanelDraggable() {
 
   const moveDrag = (clientX, clientY, originalEvent) => {
     if (!draggingPanel) return;
+    if (Math.abs(clientX - draggingPanel.startX) > 3 || Math.abs(clientY - draggingPanel.startY) > 3) draggingPanel.moved = true;
     const pos = clampPanelPosition(clientX - draggingPanel.offsetX, clientY - draggingPanel.offsetY);
     panelEl.style.left = `${pos.left}px`;
     panelEl.style.top = `${pos.top}px`;
@@ -791,6 +797,7 @@ function makePanelDraggable() {
 
   const endDrag = () => {
     if (!draggingPanel) return;
+    const wasCollapsedButtonDrag = draggingPanel.collapsedButton && draggingPanel.moved;
     const rect = panelEl.getBoundingClientRect();
     const pos = clampPanelPosition(rect.left, rect.top);
     const s = getSettings();
@@ -800,16 +807,23 @@ function makePanelDraggable() {
     panelEl.classList.remove('tua-dragging');
     document.body.classList.remove('tua-panel-dragging-body');
     draggingPanel = null;
+    if (wasCollapsedButtonDrag) collapsedButtonSuppressClick = true;
   };
 
-  header.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, 'mouse', e));
+  if (header) header.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, 'mouse', e));
+  if (collapsedButton) collapsedButton.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, 'mouse-collapsed', e, { allowButton: true, collapsedButton: true }));
   document.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY, e));
   document.addEventListener('mouseup', endDrag);
 
-  header.addEventListener('touchstart', (e) => {
+  if (header) header.addEventListener('touchstart', (e) => {
     const t = e.touches?.[0];
     if (!t) return;
     startDrag(t.clientX, t.clientY, 'touch', e);
+  }, { passive: false });
+  if (collapsedButton) collapsedButton.addEventListener('touchstart', (e) => {
+    const t = e.touches?.[0];
+    if (!t) return;
+    startDrag(t.clientX, t.clientY, 'touch-collapsed', e, { allowButton: true, collapsedButton: true });
   }, { passive: false });
   document.addEventListener('touchmove', (e) => {
     const t = e.touches?.[0];

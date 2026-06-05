@@ -687,3 +687,100 @@ body.tua-panel-dragging-body { user-select: none !important; }
 #tua-collapse {
   font-weight: 900;
 }
+
+
+/* v3.9.1: compact rounded-rectangle UI refinements */
+#tua-panel button,
+#tua-context-menu button,
+#tua-chatbar-launcher,
+.tua-extension-menu-entry,
+.tua-danger-light {
+  border-radius: 9px !important;
+}
+
+#tua-panel .tua-window {
+  border-radius: 14px !important;
+}
+.tua-header {
+  padding: 8px 9px 7px !important;
+}
+.tua-header-actions {
+  gap: 4px !important;
+}
+.tua-header-actions button {
+  width: 26px !important;
+  min-width: 26px !important;
+  height: 26px !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  border-radius: 8px !important;
+}
+
+.tua-roombar {
+  gap: 5px !important;
+  padding: 6px 8px !important;
+}
+.tua-active-room-title {
+  padding: 6px 9px !important;
+  border-radius: 9px !important;
+}
+.tua-roombar button {
+  height: 26px !important;
+  padding: 0 8px !important;
+  font-size: calc(var(--tua-font-size) - 4px) !important;
+  border-radius: 8px !important;
+}
+#tua-pin-room,
+#tua-new-room,
+#tua-delete-room {
+  width: 26px !important;
+  min-width: 26px !important;
+  height: 26px !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  border-radius: 8px !important;
+}
+#tua-rename-room {
+  white-space: nowrap;
+}
+
+.tua-room-item,
+.tua-bubble,
+#tua-input,
+.tua-in-panel-settings input,
+.tua-in-panel-settings select,
+.tua-in-panel-settings textarea,
+#tua-context-menu {
+  border-radius: 10px !important;
+}
+.tua-user .tua-bubble,
+.tua-assistant .tua-bubble {
+  border-bottom-right-radius: 10px !important;
+  border-bottom-left-radius: 10px !important;
+}
+#tua-send {
+  width: 30px !important;
+  min-width: 30px !important;
+  height: 30px !important;
+  flex-basis: 30px !important;
+  border-radius: 9px !important;
+  font-size: 14px !important;
+}
+
+#tua-collapsed-button {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 9px !important;
+  font-size: 17px !important;
+  cursor: grab !important;
+}
+#tua-panel.tua-dragging #tua-collapsed-button {
+  cursor: grabbing !important;
+}
+#tua-panel.tua-collapsed {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+}
