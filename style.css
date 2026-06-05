@@ -603,3 +603,87 @@
 .tua-header { cursor: grab; user-select: none; }
 #tua-panel.tua-dragging .tua-header { cursor: grabbing; }
 body.tua-panel-dragging-body { user-select: none !important; }
+
+/* v3.9: pinned rooms, backup buttons, coworker note, collapsible popup */
+.tua-in-panel-settings textarea {
+  width: 100%;
+  min-height: 76px;
+  border: 1px solid rgba(159, 122, 54, .34);
+  outline: 0;
+  border-radius: 10px;
+  padding: 8px 9px;
+  background: #fffdf6;
+  color: var(--tua-text);
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+#tua-pin-room,
+#tua-delete-room {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px !important;
+}
+#tua-pin-room.active {
+  background: #f2d89f !important;
+  border-color: rgba(159, 122, 54, .46) !important;
+}
+.tua-room-item.pinned {
+  background: #fff2cf;
+  border-color: rgba(159, 122, 54, .34);
+}
+.tua-room-item.pinned.active {
+  background: #efd08d;
+}
+
+#tua-export-rooms,
+#tua-import-rooms {
+  background: #fff4d7;
+  color: #4b3215;
+}
+#tua-export-rooms:hover,
+#tua-import-rooms:hover {
+  background: #f7dfaa;
+}
+
+#tua-collapsed-button {
+  display: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  border: 1px solid rgba(110, 79, 31, .24);
+  background: #fff7dd;
+  color: #2a1c0d;
+  box-shadow: 0 10px 28px rgba(92, 66, 28, .22), 0 1px 0 rgba(255,255,255,.8) inset;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+#tua-collapsed-button:hover { background: #f7dfaa; }
+
+#tua-panel.tua-collapsed {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  resize: none !important;
+  overflow: visible !important;
+}
+#tua-panel.tua-collapsed .tua-window {
+  display: none !important;
+}
+#tua-panel.tua-collapsed #tua-collapsed-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+#tua-collapse {
+  font-weight: 900;
+}
