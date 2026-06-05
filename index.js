@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v3.9.2.1
+ * 🐶콩고물 토오크 v3.9.3
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -797,7 +797,10 @@ function makePanelDraggable() {
 
   const endDrag = () => {
     if (!draggingPanel) return;
-    const wasCollapsedButtonDrag = draggingPanel.collapsedButton && draggingPanel.moved;
+    const wasCollapsedButton = draggingPanel.collapsedButton;
+    const moved = draggingPanel.moved;
+    const wasCollapsedButtonDrag = wasCollapsedButton && moved;
+    const shouldOpenCollapsedButton = wasCollapsedButton && !moved;
     const rect = panelEl.getBoundingClientRect();
     const pos = clampPanelPosition(rect.left, rect.top);
     const s = getSettings();
@@ -807,7 +810,17 @@ function makePanelDraggable() {
     panelEl.classList.remove('tua-dragging');
     document.body.classList.remove('tua-panel-dragging-body');
     draggingPanel = null;
-    if (wasCollapsedButtonDrag) collapsedButtonSuppressClick = true;
+    if (wasCollapsedButtonDrag) {
+      collapsedButtonSuppressClick = true;
+      window.setTimeout(() => { collapsedButtonSuppressClick = false; }, 350);
+      return;
+    }
+    if (shouldOpenCollapsedButton) {
+      collapsedButtonSuppressClick = true;
+      setPanelCollapsed(false);
+      setPanelVisible(true);
+      window.setTimeout(() => { collapsedButtonSuppressClick = false; }, 350);
+    }
   };
 
   if (header) header.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, 'mouse', e));
