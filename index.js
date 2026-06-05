@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v3.9.1
+ * 🐶콩고물 토오크 v3.9.2.1
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -690,15 +690,15 @@ function ensurePanel() {
   $('#tua-close').on('click', () => setPanelVisible(false));
   $('#tua-collapse').on('click', (e) => { e.preventDefault(); e.stopPropagation(); setPanelCollapsed(true); });
   $('#tua-collapsed-button').on('click', (e) => { e.preventDefault(); e.stopPropagation(); if (collapsedButtonSuppressClick) { collapsedButtonSuppressClick = false; return; } setPanelCollapsed(false); setPanelVisible(true); });
-  $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); $('#tua-in-panel-settings').toggleClass('open'); });
+  $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeRoomList(); $('#tua-in-panel-settings').toggleClass('open'); });
   $('#tua-active-room-title').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); toggleRoomList(); });
   $('#tua-new-room').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); const r = createRoom(); toggleRoomList(false); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
   $('#tua-delete-room').on('click', () => { closeSettingsPanel(); if (confirm('이 🐶콩고물 토오크 대화방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
   $('#tua-pin-room').on('click', () => { closeSettingsPanel(); toggleActiveRoomPinned(); });
   $('#tua-rename-room').on('click', () => { closeSettingsPanel(); renameActiveRoom(); });
-  $('#tua-send').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeSettingsPanel(); sendCurrentInput(); });
-  $('#tua-input').on('focus click', closeSettingsPanel);
-  $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); sendCurrentInput(); } });
+  $('#tua-send').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeSettingsPanel(); closeRoomList(); sendCurrentInput(); });
+  $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); });
+  $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
   $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-width,#tua-panel-height,#tua-panel-coworker-note').on('change input', readPanelSettingsUI);
   $('#tua-refresh-profiles').on('click', refreshProfiles);
@@ -706,7 +706,7 @@ function ensurePanel() {
   $('#tua-import-rooms').on('click', () => $('#tua-import-file').trigger('click'));
   $('#tua-import-file').on('change', importCurrentCharacterRooms);
   $('#tua-reset-all-rooms').on('click', resetAllRoomsForCurrentCharacter);
-  $('#tua-messages').on('click', closeSettingsPanel);
+  $('#tua-messages').on('click', () => { closeSettingsPanel(); closeRoomList(); });
 
   makePanelDraggable();
 
@@ -837,6 +837,10 @@ function makePanelDraggable() {
 
 function closeSettingsPanel() {
   $('#tua-in-panel-settings').removeClass('open');
+}
+
+function closeRoomList() {
+  $('#tua-room-list').removeClass('open');
 }
 
 function setPanelCollapsed(collapsed) {
