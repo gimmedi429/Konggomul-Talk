@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v3.9.4
+ * 🐶콩고물 토오크 v3.9.7
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -70,11 +70,12 @@ const PANEL_MIN_HEIGHT = 360;
 const PANEL_MAX_WIDTH = 1000;
 const PANEL_MAX_HEIGHT = 1000;
 
-const PROACTIVE_DELAYS = Object.freeze({
-  low: [90, 180],
-  normal: [45, 120],
-  high: [20, 60]
+const PROACTIVE_THRESHOLDS = Object.freeze({
+  low: 30,
+  normal: 20,
+  high: 10
 });
+const PROACTIVE_CHANCE = 0.5;
 
 const DEFAULT_SETTINGS = Object.freeze({
   enabled: true,
@@ -108,7 +109,6 @@ let draggingPanel = null;
 let collapsedButtonSuppressClick = false;
 let worldInfoModulePromise = null;
 let resizingPanel = null;
-let proactiveTimer = null;
 let proactiveGenerating = false;
 
 function ctx() { return SillyTavern.getContext(); }
@@ -160,6 +160,8 @@ async function loadRooms() {
   if (!data || !Array.isArray(data.rooms)) data = { rooms: [] };
   if (typeof data.voiceNote !== 'string') data.voiceNote = '';  // character-specific manual voice lock
   if (typeof data.proactiveUnread !== 'boolean') data.proactiveUnread = false;
+  if (!Number.isFinite(Number(data.proactiveMainReplyCount))) data.proactiveMainReplyCount = 0;
+  if (typeof data.proactiveLastMainSig !== 'string') data.proactiveLastMainSig = '';
   for (const room of data.rooms) {
     if (room.mode === 'ooc') room.mode = 'watching';
     if (!room.mode || !MODES[room.mode]) room.mode = getSettings().mode || 'care';
@@ -704,11 +706,13 @@ async function generateAssistantReply(userText) {
 async function generateProactiveReply() {
   const context = ctx();
   const instruction = `Write one short proactive Care-mode message from {char} to {user}.
-This is {char} casually texting first; do not mention any prompt, trigger, timer, or system.
-Choose one natural angle: recommend a song and briefly say why, mention food {char} wants, suggest a tiny text-only thing to do together, show mild concern, or share a small amusing thought/day.
-Keep it in-character. Do not create a real-world meeting, visit, delivery, errand, or future promise.`;
+This is {char} casually texting first in Care mode; do not mention any prompt, trigger, counter, probability, or system.
+Do not analyze, summarize, or react to keywords from the latest main chat.
+Choose one random casual angle: recommend a song and briefly say why, mention food {char} suddenly wants, share a small amusing thought/day, show mild concern, playfully tease {user}, or ask a light question that fits {char}.
+Keep it in-character, casual, and short. Do not continue the main scene. Do not write narration, actions, or stage directions.
+Do not create a real-world meeting, visit, delivery, errand, or future promise.`;
   const systemPrompt = await buildSystemPrompt('', 'care', instruction);
-  const prompt = [{ role: 'user', content: 'Send the proactive message now.' }];
+  const prompt = [{ role: 'user', content: 'Send one random casual proactive message now.' }];
   const settings = getSettings();
   return await useSelectedProfileIfNeeded(async () => {
     if (typeof context.generateRaw === 'function') {
@@ -722,11 +726,23 @@ Keep it in-character. Do not create a real-world meeting, visit, delivery, erran
   });
 }
 
-function getRandomProactiveDelayMs() {
+function getProactiveThreshold() {
   const s = getSettings();
-  const [min, max] = PROACTIVE_DELAYS[s.proactiveFrequency] || PROACTIVE_DELAYS.normal;
-  const minutes = min + Math.random() * (max - min);
-  return Math.round(minutes * 60 * 1000);
+  return PROACTIVE_THRESHOLDS[s.proactiveFrequency] || PROACTIVE_THRESHOLDS.normal;
+}
+
+function getLatestMainAssistantSignature() {
+  const context = ctx();
+  const chat = Array.isArray(context.chat) ? context.chat : [];
+  for (let i = chat.length - 1; i >= 0; i--) {
+    const m = chat[i];
+    if (!m || m.is_user || m.is_system) continue;
+    const text = String(m.mes || m.message || '').trim();
+    if (!text) continue;
+    const id = m.extra?.gen_id || m.swipe_id || m.send_date || m.create_date || '';
+    return `${getCharKey()}::${i}::${id}::${text.slice(0, 160)}`;
+  }
+  return '';
 }
 
 function clearProactiveUnread(save = true) {
@@ -745,32 +761,39 @@ function updateProactiveUnreadUI() {
   if (btn) btn.title = unread ? '캐릭터 선톡 도착' : '콩고물 토오크 펼치기';
 }
 
-function scheduleProactiveNudge() {
-  if (proactiveTimer) {
-    clearTimeout(proactiveTimer);
-    proactiveTimer = null;
-  }
+async function handleMainChatChangedForProactive() {
   const s = getSettings();
-  const isCollapsed = !!panelEl?.classList.contains('tua-collapsed');
-  const isVisible = !!panelEl?.classList.contains('tua-visible');
-  if (!s.enabled || !s.proactiveEnabled || !isVisible || !isCollapsed) return;
-  proactiveTimer = setTimeout(() => maybeCreateProactiveNudge(), getRandomProactiveDelayMs());
+  if (!s.enabled || !s.proactiveEnabled || proactiveGenerating) return;
+  if (!roomState || !Array.isArray(roomState.rooms)) return;
+
+  const sig = getLatestMainAssistantSignature();
+  if (!sig || sig === roomState.proactiveLastMainSig) return;
+
+  roomState.proactiveLastMainSig = sig;
+  roomState.proactiveMainReplyCount = Math.max(0, Number(roomState.proactiveMainReplyCount) || 0) + 1;
+
+  const threshold = getProactiveThreshold();
+  if (roomState.proactiveMainReplyCount < threshold) {
+    await saveRooms();
+    return;
+  }
+
+  roomState.proactiveMainReplyCount = 0;
+  await saveRooms();
+
+  if (Math.random() >= PROACTIVE_CHANCE) return;
+  await maybeCreateProactiveNudgeFromMainReply();
 }
 
-async function maybeCreateProactiveNudge() {
-  proactiveTimer = null;
+async function maybeCreateProactiveNudgeFromMainReply() {
   const s = getSettings();
   const isCollapsed = !!panelEl?.classList.contains('tua-collapsed');
   const isVisible = !!panelEl?.classList.contains('tua-visible');
-  if (!s.enabled || !s.proactiveEnabled || !isVisible || !isCollapsed || proactiveGenerating || roomState?.proactiveUnread) {
-    scheduleProactiveNudge();
-    return;
-  }
+  if (!s.enabled || !s.proactiveEnabled || !isVisible || !isCollapsed || proactiveGenerating || roomState?.proactiveUnread) return;
+
   const room = getActiveRoom();
-  if (!room || room.messages?.some(m => m.loading)) {
-    scheduleProactiveNudge();
-    return;
-  }
+  if (!room || room.messages?.some(m => m.loading)) return;
+
   proactiveGenerating = true;
   try {
     const reply = sanitizeAssistantReply(await generateProactiveReply());
@@ -782,7 +805,6 @@ async function maybeCreateProactiveNudge() {
     console.warn('[Konggomul] proactive nudge failed', e);
   } finally {
     proactiveGenerating = false;
-    scheduleProactiveNudge();
   }
 }
 
@@ -856,7 +878,7 @@ function ensurePanel() {
             <option value="normal">보통</option>
             <option value="high">높음</option>
           </select>
-          <small>콩고물 창이 접혀 있을 때만 가끔 Care 모드로 먼저 말을 겁니다.</small>
+          <small>본채팅 캐릭터 답변 수 기준으로 가끔 Care 모드 선톡이 옵니다. 높음 10개 / 보통 20개 / 낮음 30개마다 50% 확률.</small>
         </label>
         <label>창 너비(px)
           <input id="tua-panel-width" type="number" min="280" max="1000" step="10">
@@ -1117,14 +1139,13 @@ function setPanelCollapsed(collapsed) {
   saveSettings();
   if (panelEl) panelEl.classList.toggle('tua-collapsed', !!collapsed);
   updateProactiveUnreadUI();
-  scheduleProactiveNudge();
 }
 
 function exportCurrentCharacterRooms() {
   try {
     const payload = {
       app: 'Konggomul Talk',
-      version: '3.9.0',
+      version: '3.9.7',
       exportedAt: new Date().toISOString(),
       characterKey: getCharKey(),
       characterName: getCharName(),
@@ -1166,7 +1187,9 @@ function normalizeImportedRoomState(raw) {
       })) : []
     })),
     voiceNote: typeof imported.voiceNote === 'string' ? imported.voiceNote : '',
-    proactiveUnread: typeof imported.proactiveUnread === 'boolean' ? imported.proactiveUnread : false
+    proactiveUnread: typeof imported.proactiveUnread === 'boolean' ? imported.proactiveUnread : false,
+      proactiveMainReplyCount: Number.isFinite(Number(imported.proactiveMainReplyCount)) ? Number(imported.proactiveMainReplyCount) : 0,
+      proactiveLastMainSig: typeof imported.proactiveLastMainSig === 'string' ? imported.proactiveLastMainSig : ''
   };
   if (!next.rooms.length) {
     next.rooms.push({ id: 'room_' + Date.now(), title: defaultRoomTitle(), createdAt: Date.now(), mode: getSettings().mode || 'care', pinned: false, messages: [] });
@@ -1204,7 +1227,7 @@ function importCurrentCharacterRooms(e) {
 
 function resetAllRoomsForCurrentCharacter() {
   if (!confirm('이 캐릭터와의 대화를 전부 초기화하시겠습니까?')) return;
-  roomState = { rooms: [], proactiveUnread: false };
+  roomState = { rooms: [], proactiveUnread: false, proactiveMainReplyCount: 0, proactiveLastMainSig: '' };
   createRoom(false);
   saveRooms();
   renderAll();
@@ -1228,7 +1251,6 @@ function setPanelVisible(show) {
     applyPanelPosition();
   }
   updateProactiveUnreadUI();
-  scheduleProactiveNudge();
   const settings = getSettings();
   settings.openOnStart = !!show;
   saveSettings();
@@ -1263,7 +1285,6 @@ async function sendCurrentInput() {
   }
   await saveRooms();
   renderMessages();
-  scheduleProactiveNudge();
 }
 
 function renderSettings() {
@@ -1344,12 +1365,11 @@ function readPanelSettingsUI() {
   setVoiceNote($('#tua-panel-voice-note').val() || '');
   s.coworkerWorkNote = $('#tua-panel-coworker-note').val() || '';
   s.proactiveEnabled = $('#tua-panel-proactive-enabled').prop('checked');
-  s.proactiveFrequency = PROACTIVE_DELAYS[$('#tua-panel-proactive-frequency').val()] ? $('#tua-panel-proactive-frequency').val() : 'normal';
+  s.proactiveFrequency = PROACTIVE_THRESHOLDS[$('#tua-panel-proactive-frequency').val()] ? $('#tua-panel-proactive-frequency').val() : 'normal';
   saveSettings();
   applyVisualSettings();
   renderAll();
   $('#tua-profile-select-wrap').toggle(s.profileMode === 'profile');
-  scheduleProactiveNudge();
 }
 
 function isPanelSizeInputFocused() {
@@ -1654,7 +1674,7 @@ async function init() {
   await loadRooms();
   if (getSettings().enabled && getSettings().openOnStart) setPanelVisible(true);
   const context = ctx();
-  context.eventSource?.on?.(context.event_types?.CHAT_CHANGED, async () => { await loadRooms(); renderAll(); });
+  context.eventSource?.on?.(context.event_types?.CHAT_CHANGED, async () => { await loadRooms(); renderAll(); await handleMainChatChangedForProactive(); });
   context.eventSource?.on?.(context.event_types?.CHARACTER_EDITED, renderAll);
 }
 
