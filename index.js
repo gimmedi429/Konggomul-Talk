@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v3.9.3
+ * 🐶콩고물 토오크 v3.9.4
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -91,6 +91,7 @@ let initialized = false;
 let resizeObserver = null;
 let draggingPanel = null;
 let collapsedButtonSuppressClick = false;
+let worldInfoModulePromise = null;
 
 function ctx() { return SillyTavern.getContext(); }
 
@@ -292,7 +293,9 @@ function getPersonaBlock() {
 function getRecentChatBlock() {
   const settings = getSettings();
   const context = ctx();
-  const n = Math.max(0, Number(settings.recentMessages) || 0);
+  const raw = Number(settings.recentMessages);
+  const n = Number.isFinite(raw) ? Math.max(0, raw) : 10;
+  if (n === 0) return 'No recent main chat messages included.';
   const chat = Array.isArray(context.chat) ? context.chat.slice(-n) : [];
   if (!chat.length) return 'No recent main chat messages included.';
   return chat.map((m, i) => {
@@ -300,6 +303,70 @@ function getRecentChatBlock() {
     const text = m.mes || m.message || '';
     return `${i + 1}. ${role}: ${text}`;
   }).join('\n');
+}
+
+async function getWorldInfoModule() {
+  const context = ctx();
+  if (typeof context.getWorldInfoPrompt === 'function') {
+    return { getWorldInfoPrompt: context.getWorldInfoPrompt.bind(context) };
+  }
+  if (!worldInfoModulePromise) {
+    worldInfoModulePromise = import('../../../../scripts/world-info.js').catch(e => {
+      console.warn('[Konggomul] world-info import failed', e);
+      return null;
+    });
+  }
+  return await worldInfoModulePromise;
+}
+
+function getWorldInfoScanChat(currentUserText = '') {
+  const settings = getSettings();
+  const context = ctx();
+  const raw = Number(settings.recentMessages);
+  const n = Number.isFinite(raw) ? Math.max(0, raw) : 10;
+  const source = Array.isArray(context.chat) && n > 0 ? context.chat.filter(m => !m.is_system).slice(-n) : [];
+  const rows = source.map(m => {
+    const name = m.is_user ? '{{user}}' : getCharName();
+    const text = String(m.mes || m.message || '').trim();
+    return text ? `${name}: ${text}` : '';
+  }).filter(Boolean);
+  const latest = String(currentUserText || '').trim();
+  if (latest) rows.push(`{{user}}: ${latest}`);
+  return rows.reverse();
+}
+
+async function getLorebookBlock(currentUserText = '') {
+  try {
+    const mod = await getWorldInfoModule();
+    if (typeof mod?.getWorldInfoPrompt !== 'function') {
+      return 'No active lorebook content was detected, or this SillyTavern build does not expose the World Info prompt API to extensions.';
+    }
+    const chatForWI = getWorldInfoScanChat(currentUserText);
+    if (!chatForWI.length) return 'No active lorebook content was detected.';
+    const result = await mod.getWorldInfoPrompt(chatForWI, 65536, true);
+    const pieces = [];
+    if (result?.worldInfoBefore) pieces.push(result.worldInfoBefore);
+    if (result?.worldInfoAfter) pieces.push(result.worldInfoAfter);
+    if (Array.isArray(result?.worldInfoExamples)) {
+      for (const e of result.worldInfoExamples) if (e?.content) pieces.push(e.content);
+    }
+    if (Array.isArray(result?.worldInfoDepth)) {
+      for (const e of result.worldInfoDepth) {
+        if (Array.isArray(e?.entries)) pieces.push(e.entries.join('\n'));
+      }
+    }
+    if (Array.isArray(result?.anBefore)) {
+      for (const e of result.anBefore) if (e?.content) pieces.push(e.content);
+    }
+    if (Array.isArray(result?.anAfter)) {
+      for (const e of result.anAfter) if (e?.content) pieces.push(e.content);
+    }
+    const text = pieces.map(x => String(x || '').trim()).filter(Boolean).join('\n\n');
+    return text || 'No active lorebook content was detected for the current message/context.';
+  } catch (e) {
+    console.warn('[Konggomul] lorebook scan failed', e);
+    return 'Lorebook scan failed in this SillyTavern build. Continue without lorebook content.';
+  }
 }
 
 
@@ -336,12 +403,22 @@ function getCharacterVoiceSamples() {
 }
 
 
-function getAssistantConversationBlock() {
+function getPromptRoomMessages(currentUserText = '', limit = 12) {
   const room = getActiveRoom();
-  if (!room || !Array.isArray(room.messages) || !room.messages.length) return 'No prior Konggomul Talk messages in this room.';
-  const messages = room.messages
-    .filter(m => !m.loading && !m.error && String(m.content || '').trim())
-    .slice(-12)
+  const messages = (room?.messages || [])
+    .filter(m => !m.loading && !m.error && String(m.content || '').trim());
+  const latest = String(currentUserText || '').trim();
+  if (latest && messages.length) {
+    const last = messages[messages.length - 1];
+    if (last?.role === 'user' && String(last.content || '').trim() === latest) {
+      messages.pop();
+    }
+  }
+  return messages.slice(-limit);
+}
+
+function getAssistantConversationBlock(currentUserText = '') {
+  const messages = getPromptRoomMessages(currentUserText, 12)
     .map((m, i) => {
       const who = m.role === 'user' ? '{{user}}' : getCharName();
       return `${i + 1}. ${who}: ${String(m.content || '').replace(/<[^>]+>/g, '').trim().slice(0, 1200)}`;
@@ -350,19 +427,15 @@ function getAssistantConversationBlock() {
 }
 
 function buildPromptMessages(userText) {
-  const room = getActiveRoom();
-  const history = (room?.messages || [])
-    .filter(m => !m.loading && !m.error && String(m.content || '').trim())
-    .slice(-10)
-    .map(m => ({
-      role: m.role === 'user' ? 'user' : 'assistant',
-      content: String(m.content || '')
-    }));
+  const history = getPromptRoomMessages(userText, 10).map(m => ({
+    role: m.role === 'user' ? 'user' : 'assistant',
+    content: String(m.content || '')
+  }));
   history.push({ role: 'user', content: String(userText || '') });
   return history;
 }
 
-function buildSystemPrompt() {
+async function buildSystemPrompt(currentUserText = '') {
   const settings = getSettings();
   const characterName = getCharName();
   const activeModeKey = getRoomMode();
@@ -410,7 +483,7 @@ Only the instructions are written in English.
 Write only the messenger reply from {char} to {user}.
 Do not output XML/HTML tags, phone_trigger, think tags, system notes, labels, or speaker prefixes.
 Do not write {user}'s actions, thoughts, or dialogue.
-Usually answer in 1-3 short message-like chunks unless {user} clearly asks for a longer answer.
+If {user}'s input is light casual chat, answer in 1-3 short message-like chunks. If {user} asks a clear question, requests analysis, asks for practical work help, or needs a useful answer, respond with enough detail to fully satisfy the request.
 
 Boundaries:
 Answer within the current message exchange. Do not create a next meeting, date plan, errand, delivery, visit, or future scene unless {user} directly asks for it.
@@ -427,6 +500,10 @@ Max response tokens: ${settings.maxTokens}
 
 [Character card / {char} source material]
 ${getCharacterBlock()}
+
+[Active World Info / Lorebook content]
+This is dynamically activated lorebook content from the current SillyTavern World Info setup. Use it as canon/background when relevant, but do not mention the lorebook or World Info mechanism.
+${await getLorebookBlock(currentUserText)}
 
 [{user} persona material]
 ${getPersonaBlock()}
@@ -446,7 +523,7 @@ Use this only in Co-worker mode as {user}'s work background. It is not {user}'s 
 ${getCoworkerWorkNoteBlock()}
 
 [Konggomul Talk current room history]
-${getAssistantConversationBlock()}
+${getAssistantConversationBlock(currentUserText)}
 
 Now stop RP and answer {user}'s latest message in Korean, as {char}, in the selected mode.`;
 }
@@ -589,7 +666,7 @@ function sanitizeAssistantReply(text) {
 
 async function generateAssistantReply(userText) {
   const context = ctx();
-  const systemPrompt = buildSystemPrompt();
+  const systemPrompt = await buildSystemPrompt(userText);
   const prompt = buildPromptMessages(userText);
   const settings = getSettings();
   return await useSelectedProfileIfNeeded(async () => {
@@ -1070,7 +1147,10 @@ function readPanelSettingsUI() {
   s.profileMode = $('#tua-panel-profile-mode').val();
   s.selectedProfile = $('#tua-panel-profile').val() || '';
   s.maxTokens = Number($('#tua-panel-tokens').val()) || 1000;
-  s.recentMessages = Number($('#tua-panel-recent').val()) || 10;
+  {
+    const recentRaw = Number($('#tua-panel-recent').val());
+    s.recentMessages = Number.isFinite(recentRaw) ? Math.max(0, recentRaw) : 10;
+  }
   s.fontSize = Number($('#tua-panel-font').val()) || 14;
   setVoiceNote($('#tua-panel-voice-note').val() || '');
   s.coworkerWorkNote = $('#tua-panel-coworker-note').val() || '';
