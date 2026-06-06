@@ -63,6 +63,19 @@ If {user} asks for help, {char} can help with reply ideas, pacing, emotional con
   }
 };
 
+const PANEL_DEFAULT_WIDTH = 320;
+const PANEL_DEFAULT_HEIGHT = 515;
+const PANEL_MIN_WIDTH = 280;
+const PANEL_MIN_HEIGHT = 360;
+const PANEL_MAX_WIDTH = 1000;
+const PANEL_MAX_HEIGHT = 1000;
+
+const PROACTIVE_DELAYS = Object.freeze({
+  low: [90, 180],
+  normal: [45, 120],
+  high: [20, 60]
+});
+
 const DEFAULT_SETTINGS = Object.freeze({
   enabled: true,
   openOnStart: false,
@@ -70,8 +83,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   fontSize: 14,
   maxTokens: 1000,
   recentMessages: 10,
-  panelWidth: 380,
-  panelHeight: 560,
+  panelWidth: PANEL_DEFAULT_WIDTH,
+  panelHeight: PANEL_DEFAULT_HEIGHT,
   panelLeft: null,
   panelTop: null,
   profileMode: 'current',
@@ -79,7 +92,9 @@ const DEFAULT_SETTINGS = Object.freeze({
   cachedProfiles: [],
   sendToMainEnabled: true,
   collapsed: false,
-  coworkerWorkNote: ''
+  coworkerWorkNote: '',
+  proactiveEnabled: false,
+  proactiveFrequency: 'normal'
 });
 
 let activeRoomId = null;
@@ -92,6 +107,9 @@ let resizeObserver = null;
 let draggingPanel = null;
 let collapsedButtonSuppressClick = false;
 let worldInfoModulePromise = null;
+let resizingPanel = null;
+let proactiveTimer = null;
+let proactiveGenerating = false;
 
 function ctx() { return SillyTavern.getContext(); }
 
@@ -141,6 +159,7 @@ async function loadRooms() {
   } catch { data = null; }
   if (!data || !Array.isArray(data.rooms)) data = { rooms: [] };
   if (typeof data.voiceNote !== 'string') data.voiceNote = '';  // character-specific manual voice lock
+  if (typeof data.proactiveUnread !== 'boolean') data.proactiveUnread = false;
   for (const room of data.rooms) {
     if (room.mode === 'ooc') room.mode = 'watching';
     if (!room.mode || !MODES[room.mode]) room.mode = getSettings().mode || 'care';
@@ -435,10 +454,10 @@ function buildPromptMessages(userText) {
   return history;
 }
 
-async function buildSystemPrompt(currentUserText = '') {
+async function buildSystemPrompt(currentUserText = '', modeOverride = null, finalInstruction = '') {
   const settings = getSettings();
   const characterName = getCharName();
-  const activeModeKey = getRoomMode();
+  const activeModeKey = modeOverride && MODES[modeOverride] ? modeOverride : getRoomMode();
   const mode = MODES[activeModeKey] || MODES.care;
   return `You are writing a separate messenger reply.
 
@@ -525,7 +544,8 @@ ${getCoworkerWorkNoteBlock()}
 [Konggomul Talk current room history]
 ${getAssistantConversationBlock(currentUserText)}
 
-Now stop RP and answer {user}'s latest message in Korean, as {char}, in the selected mode.`;
+${finalInstruction ? `\n[Special instruction for this reply]\n${finalInstruction}\n` : ''}
+Now stop RP and answer in Korean, as {char}, in the selected mode.`;
 }
 
 async function runSlashCommand(command) {
@@ -681,6 +701,92 @@ async function generateAssistantReply(userText) {
   });
 }
 
+async function generateProactiveReply() {
+  const context = ctx();
+  const instruction = `Write one short proactive Care-mode message from {char} to {user}.
+This is {char} casually texting first; do not mention any prompt, trigger, timer, or system.
+Choose one natural angle: recommend a song and briefly say why, mention food {char} wants, suggest a tiny text-only thing to do together, show mild concern, or share a small amusing thought/day.
+Keep it in-character. Do not create a real-world meeting, visit, delivery, errand, or future promise.`;
+  const systemPrompt = await buildSystemPrompt('', 'care', instruction);
+  const prompt = [{ role: 'user', content: 'Send the proactive message now.' }];
+  const settings = getSettings();
+  return await useSelectedProfileIfNeeded(async () => {
+    if (typeof context.generateRaw === 'function') {
+      return await context.generateRaw({ systemPrompt, prompt, maxTokens: Math.min(settings.maxTokens || 1000, 700), max_tokens: Math.min(settings.maxTokens || 1000, 700) });
+    }
+    if (typeof context.generateQuietPrompt === 'function') {
+      const merged = `${systemPrompt}\n\nCURRENT ASSISTANT CONVERSATION:\n${prompt.map(m => `${m.role}: ${m.content}`).join('\n')}\n\nAnswer now.`;
+      return await context.generateQuietPrompt({ quietPrompt: merged, maxTokens: Math.min(settings.maxTokens || 1000, 700), max_tokens: Math.min(settings.maxTokens || 1000, 700) });
+    }
+    throw new Error('SillyTavern generation function not found.');
+  });
+}
+
+function getRandomProactiveDelayMs() {
+  const s = getSettings();
+  const [min, max] = PROACTIVE_DELAYS[s.proactiveFrequency] || PROACTIVE_DELAYS.normal;
+  const minutes = min + Math.random() * (max - min);
+  return Math.round(minutes * 60 * 1000);
+}
+
+function clearProactiveUnread(save = true) {
+  if (roomState?.proactiveUnread) {
+    roomState.proactiveUnread = false;
+    if (save) saveRooms();
+  }
+  updateProactiveUnreadUI();
+}
+
+function updateProactiveUnreadUI() {
+  if (!panelEl) return;
+  const unread = !!roomState?.proactiveUnread;
+  panelEl.classList.toggle('tua-proactive-unread', unread);
+  const btn = panelEl.querySelector('#tua-collapsed-button');
+  if (btn) btn.title = unread ? '캐릭터 선톡 도착' : '콩고물 토오크 펼치기';
+}
+
+function scheduleProactiveNudge() {
+  if (proactiveTimer) {
+    clearTimeout(proactiveTimer);
+    proactiveTimer = null;
+  }
+  const s = getSettings();
+  const isCollapsed = !!panelEl?.classList.contains('tua-collapsed');
+  const isVisible = !!panelEl?.classList.contains('tua-visible');
+  if (!s.enabled || !s.proactiveEnabled || !isVisible || !isCollapsed) return;
+  proactiveTimer = setTimeout(() => maybeCreateProactiveNudge(), getRandomProactiveDelayMs());
+}
+
+async function maybeCreateProactiveNudge() {
+  proactiveTimer = null;
+  const s = getSettings();
+  const isCollapsed = !!panelEl?.classList.contains('tua-collapsed');
+  const isVisible = !!panelEl?.classList.contains('tua-visible');
+  if (!s.enabled || !s.proactiveEnabled || !isVisible || !isCollapsed || proactiveGenerating || roomState?.proactiveUnread) {
+    scheduleProactiveNudge();
+    return;
+  }
+  const room = getActiveRoom();
+  if (!room || room.messages?.some(m => m.loading)) {
+    scheduleProactiveNudge();
+    return;
+  }
+  proactiveGenerating = true;
+  try {
+    const reply = sanitizeAssistantReply(await generateProactiveReply());
+    room.messages.push({ id: 'msg_proactive_' + Date.now() + '_' + Math.random().toString(16).slice(2), role: 'assistant', content: reply, at: Date.now(), proactive: true });
+    roomState.proactiveUnread = true;
+    await saveRooms();
+    updateProactiveUnreadUI();
+  } catch (e) {
+    console.warn('[Konggomul] proactive nudge failed', e);
+  } finally {
+    proactiveGenerating = false;
+    scheduleProactiveNudge();
+  }
+}
+
+
 function ensurePanel() {
   if (panelEl) return;
   panelEl = document.createElement('div');
@@ -743,6 +849,15 @@ function ensurePanel() {
         <label>Co-worker 업무 메모
           <textarea id="tua-panel-coworker-note" rows="5" placeholder="예: 유저는 가구 쇼핑몰을 운영한다. 주 업무는 스마트스토어, 인스타 마케팅, 상세페이지 문구, 고객 CS, 리뷰 대응, 사방넷 발주 관리, 쇼룸 운영이다."></textarea>
         </label>
+        <label class="tua-checkbox-row"><input id="tua-panel-proactive-enabled" type="checkbox"> 캐릭터 선톡 사용</label>
+        <label>선톡 빈도
+          <select id="tua-panel-proactive-frequency">
+            <option value="low">낮음</option>
+            <option value="normal">보통</option>
+            <option value="high">높음</option>
+          </select>
+          <small>콩고물 창이 접혀 있을 때만 가끔 Care 모드로 먼저 말을 겁니다.</small>
+        </label>
         <label>창 너비(px)
           <input id="tua-panel-width" type="number" min="280" max="1000" step="10">
         </label>
@@ -760,13 +875,14 @@ function ensurePanel() {
         <textarea id="tua-input" placeholder="메시지를 입력하세요…"></textarea>
         <button type="button" id="tua-send" title="전송" aria-label="전송">🐶</button>
       </div>
+      <div id="tua-resize-handle" title="창 크기 조절" aria-hidden="true"></div>
     </div>
     <button type="button" id="tua-collapsed-button" title="콩고물 토오크 펼치기">🐶</button>`;
   document.body.appendChild(panelEl);
 
   $('#tua-close').on('click', () => setPanelVisible(false));
   $('#tua-collapse').on('click', (e) => { e.preventDefault(); e.stopPropagation(); setPanelCollapsed(true); });
-  $('#tua-collapsed-button').on('click', (e) => { e.preventDefault(); e.stopPropagation(); if (collapsedButtonSuppressClick) { collapsedButtonSuppressClick = false; return; } setPanelCollapsed(false); setPanelVisible(true); });
+  $('#tua-collapsed-button').on('click', (e) => { e.preventDefault(); e.stopPropagation(); if (collapsedButtonSuppressClick) { collapsedButtonSuppressClick = false; return; } clearProactiveUnread(); setPanelCollapsed(false); setPanelVisible(true); });
   $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeRoomList(); $('#tua-in-panel-settings').toggleClass('open'); });
   $('#tua-active-room-title').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); toggleRoomList(); });
   $('#tua-new-room').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); const r = createRoom(); toggleRoomList(false); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
@@ -777,7 +893,9 @@ function ensurePanel() {
   $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); });
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
-  $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-width,#tua-panel-height,#tua-panel-coworker-note').on('change input', readPanelSettingsUI);
+  $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-coworker-note,#tua-panel-proactive-enabled,#tua-panel-proactive-frequency').on('change input', readPanelSettingsUI);
+  $('#tua-panel-width,#tua-panel-height').on('change blur', applyManualPanelSizeFromUI);
+  $('#tua-panel-width,#tua-panel-height').on('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyManualPanelSizeFromUI(); e.currentTarget.blur(); } });
   $('#tua-refresh-profiles').on('click', refreshProfiles);
   $('#tua-export-rooms').on('click', exportCurrentCharacterRooms);
   $('#tua-import-rooms').on('click', () => $('#tua-import-file').trigger('click'));
@@ -786,16 +904,21 @@ function ensurePanel() {
   $('#tua-messages').on('click', () => { closeSettingsPanel(); closeRoomList(); });
 
   makePanelDraggable();
+  makePanelResizable();
 
   if (window.ResizeObserver) {
     resizeObserver = new ResizeObserver(entries => {
       const entry = entries[0];
       if (!entry || !panelEl?.classList.contains('tua-visible') || panelEl?.classList.contains('tua-collapsed')) return;
+      if (resizingPanel || isPanelSizeInputFocused()) return;
       const s = getSettings();
       const rect = entry.contentRect;
-      if (Math.abs(rect.width - s.panelWidth) > 6 || Math.abs(rect.height - s.panelHeight) > 6) {
-        s.panelWidth = Math.round(rect.width);
-        s.panelHeight = Math.round(rect.height);
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+      if (Math.abs(width - s.panelWidth) > 6 || Math.abs(height - s.panelHeight) > 6) {
+        const next = normalizePanelSize(width, height, false);
+        s.panelWidth = next.width;
+        s.panelHeight = next.height;
         saveSettings();
         hydratePanelSettingsUI();
       }
@@ -805,13 +928,68 @@ function ensurePanel() {
 }
 
 
+
+function makePanelResizable() {
+  if (!panelEl || panelEl.dataset.resizeReady === '1') return;
+  panelEl.dataset.resizeReady = '1';
+  const handle = panelEl.querySelector('#tua-resize-handle');
+  if (!handle) return;
+
+  const startResize = (e) => {
+    if (panelEl.classList.contains('tua-collapsed')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = panelEl.getBoundingClientRect();
+    resizingPanel = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: rect.width,
+      startHeight: rect.height,
+      pointerId: e.pointerId
+    };
+    panelEl.classList.add('tua-resizing');
+    document.body.classList.add('tua-panel-resizing-body');
+    try { handle.setPointerCapture?.(e.pointerId); } catch {}
+  };
+
+  const moveResize = (e) => {
+    if (!resizingPanel) return;
+    e.preventDefault();
+    const width = resizingPanel.startWidth + (e.clientX - resizingPanel.startX);
+    const height = resizingPanel.startHeight + (e.clientY - resizingPanel.startY);
+    const next = normalizePanelSize(width, height, false);
+    document.documentElement.style.setProperty('--tua-panel-width', `${next.width}px`);
+    document.documentElement.style.setProperty('--tua-panel-height', `${next.height}px`);
+    if (Number.isFinite(Number(getSettings().panelLeft)) && Number.isFinite(Number(getSettings().panelTop))) {
+      const pos = clampPanelPosition(getSettings().panelLeft, getSettings().panelTop);
+      panelEl.style.left = `${pos.left}px`;
+      panelEl.style.top = `${pos.top}px`;
+    }
+  };
+
+  const endResize = (e) => {
+    if (!resizingPanel) return;
+    const width = resizingPanel.startWidth + (e.clientX - resizingPanel.startX);
+    const height = resizingPanel.startHeight + (e.clientY - resizingPanel.startY);
+    resizingPanel = null;
+    panelEl.classList.remove('tua-resizing');
+    document.body.classList.remove('tua-panel-resizing-body');
+    applyPanelSize(width, height, 'drag');
+  };
+
+  handle.addEventListener('pointerdown', startResize);
+  window.addEventListener('pointermove', moveResize);
+  window.addEventListener('pointerup', endResize);
+  window.addEventListener('pointercancel', endResize);
+}
+
 function clampPanelPosition(left, top) {
   const s = getSettings();
   const panel = panelEl;
   if (!panel) return { left, top };
   const rect = panel.getBoundingClientRect();
-  const w = rect.width || s.panelWidth || 380;
-  const h = rect.height || s.panelHeight || 560;
+  const w = rect.width || s.panelWidth || PANEL_DEFAULT_WIDTH;
+  const h = rect.height || s.panelHeight || PANEL_DEFAULT_HEIGHT;
   const margin = 8;
   const maxLeft = Math.max(margin, window.innerWidth - w - margin);
   const maxTop = Math.max(margin, window.innerHeight - h - margin);
@@ -938,6 +1116,8 @@ function setPanelCollapsed(collapsed) {
   s.collapsed = !!collapsed;
   saveSettings();
   if (panelEl) panelEl.classList.toggle('tua-collapsed', !!collapsed);
+  updateProactiveUnreadUI();
+  scheduleProactiveNudge();
 }
 
 function exportCurrentCharacterRooms() {
@@ -985,7 +1165,8 @@ function normalizeImportedRoomState(raw) {
         ...(m.error ? { error: true } : {})
       })) : []
     })),
-    voiceNote: typeof imported.voiceNote === 'string' ? imported.voiceNote : ''
+    voiceNote: typeof imported.voiceNote === 'string' ? imported.voiceNote : '',
+    proactiveUnread: typeof imported.proactiveUnread === 'boolean' ? imported.proactiveUnread : false
   };
   if (!next.rooms.length) {
     next.rooms.push({ id: 'room_' + Date.now(), title: defaultRoomTitle(), createdAt: Date.now(), mode: getSettings().mode || 'care', pinned: false, messages: [] });
@@ -1023,7 +1204,7 @@ function importCurrentCharacterRooms(e) {
 
 function resetAllRoomsForCurrentCharacter() {
   if (!confirm('이 캐릭터와의 대화를 전부 초기화하시겠습니까?')) return;
-  roomState = { rooms: [] };
+  roomState = { rooms: [], proactiveUnread: false };
   createRoom(false);
   saveRooms();
   renderAll();
@@ -1046,6 +1227,8 @@ function setPanelVisible(show) {
     panelEl.classList.toggle('tua-collapsed', !!getSettings().collapsed);
     applyPanelPosition();
   }
+  updateProactiveUnreadUI();
+  scheduleProactiveNudge();
   const settings = getSettings();
   settings.openOnStart = !!show;
   saveSettings();
@@ -1062,6 +1245,7 @@ async function sendCurrentInput() {
   input.val('');
   autoGrowInput();
   if (!activeRoomId || !getActiveRoom()) createRoom(false);
+  clearProactiveUnread(false);
   appendMessage('user', text);
   setPanelVisible(true);
   const loadingId = 'msg_loading_' + Date.now();
@@ -1079,6 +1263,7 @@ async function sendCurrentInput() {
   }
   await saveRooms();
   renderMessages();
+  scheduleProactiveNudge();
 }
 
 function renderSettings() {
@@ -1122,8 +1307,12 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-font').val(s.fontSize);
   $('#tua-panel-voice-note').val(getVoiceNote());
   $('#tua-panel-coworker-note').val(s.coworkerWorkNote || '');
-  $('#tua-panel-width').val(s.panelWidth);
-  $('#tua-panel-height').val(s.panelHeight);
+  $('#tua-panel-proactive-enabled').prop('checked', !!s.proactiveEnabled);
+  $('#tua-panel-proactive-frequency').val(s.proactiveFrequency || 'normal');
+  if (!isPanelSizeInputFocused()) {
+    $('#tua-panel-width').val(s.panelWidth);
+    $('#tua-panel-height').val(s.panelHeight);
+  }
   $('#tua-profile-select-wrap').toggle(s.profileMode === 'profile');
 }
 
@@ -1146,20 +1335,56 @@ function readPanelSettingsUI() {
   setRoomMode(selectedMode);
   s.profileMode = $('#tua-panel-profile-mode').val();
   s.selectedProfile = $('#tua-panel-profile').val() || '';
-  s.maxTokens = Number($('#tua-panel-tokens').val()) || 1000;
-  {
-    const recentRaw = Number($('#tua-panel-recent').val());
-    s.recentMessages = Number.isFinite(recentRaw) ? Math.max(0, recentRaw) : 10;
-  }
-  s.fontSize = Number($('#tua-panel-font').val()) || 14;
+  const maxTokensRaw = Number($('#tua-panel-tokens').val());
+  s.maxTokens = Number.isFinite(maxTokensRaw) ? Math.max(100, Math.min(8000, Math.floor(maxTokensRaw))) : DEFAULT_SETTINGS.maxTokens;
+  const recentRaw = Number($('#tua-panel-recent').val());
+  s.recentMessages = Number.isFinite(recentRaw) ? Math.max(0, Math.min(100, Math.floor(recentRaw))) : DEFAULT_SETTINGS.recentMessages;
+  const fontRaw = Number($('#tua-panel-font').val());
+  s.fontSize = Number.isFinite(fontRaw) ? Math.max(10, Math.min(24, Math.floor(fontRaw))) : DEFAULT_SETTINGS.fontSize;
   setVoiceNote($('#tua-panel-voice-note').val() || '');
   s.coworkerWorkNote = $('#tua-panel-coworker-note').val() || '';
-  s.panelWidth = Number($('#tua-panel-width').val()) || 380;
-  s.panelHeight = Number($('#tua-panel-height').val()) || 560;
+  s.proactiveEnabled = $('#tua-panel-proactive-enabled').prop('checked');
+  s.proactiveFrequency = PROACTIVE_DELAYS[$('#tua-panel-proactive-frequency').val()] ? $('#tua-panel-proactive-frequency').val() : 'normal';
   saveSettings();
   applyVisualSettings();
   renderAll();
   $('#tua-profile-select-wrap').toggle(s.profileMode === 'profile');
+  scheduleProactiveNudge();
+}
+
+function isPanelSizeInputFocused() {
+  const active = document.activeElement;
+  return !!active && (active.id === 'tua-panel-width' || active.id === 'tua-panel-height');
+}
+
+function normalizePanelSize(width, height, resetInvalid = true) {
+  const w = Number(width);
+  const h = Number(height);
+  const valid = Number.isFinite(w) && Number.isFinite(h) &&
+    w >= PANEL_MIN_WIDTH && w <= PANEL_MAX_WIDTH &&
+    h >= PANEL_MIN_HEIGHT && h <= PANEL_MAX_HEIGHT;
+  if (!valid && resetInvalid) return { width: PANEL_DEFAULT_WIDTH, height: PANEL_DEFAULT_HEIGHT, reset: true };
+  return {
+    width: Math.max(PANEL_MIN_WIDTH, Math.min(PANEL_MAX_WIDTH, Math.round(Number.isFinite(w) ? w : PANEL_DEFAULT_WIDTH))),
+    height: Math.max(PANEL_MIN_HEIGHT, Math.min(PANEL_MAX_HEIGHT, Math.round(Number.isFinite(h) ? h : PANEL_DEFAULT_HEIGHT))),
+    reset: false
+  };
+}
+
+function applyPanelSize(width, height, source = 'manual') {
+  const s = getSettings();
+  const next = normalizePanelSize(width, height, true);
+  s.panelWidth = next.width;
+  s.panelHeight = next.height;
+  saveSettings();
+  applyVisualSettings();
+  hydratePanelSettingsUI();
+  if (next.reset && source === 'manual') setStatus(`창 크기 값이 범위를 벗어나 기본값 ${PANEL_DEFAULT_WIDTH}×${PANEL_DEFAULT_HEIGHT}로 복귀했습니다.`);
+  else if (source === 'manual') setStatus(`창 크기를 ${next.width}×${next.height}로 저장했습니다.`);
+}
+
+function applyManualPanelSizeFromUI() {
+  applyPanelSize($('#tua-panel-width').val(), $('#tua-panel-height').val(), 'manual');
 }
 
 function applyVisualSettings() {

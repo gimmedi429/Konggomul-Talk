@@ -784,3 +784,52 @@ body.tua-panel-dragging-body { user-select: none !important; }
   min-width: 34px !important;
   min-height: 34px !important;
 }
+
+/* v3.9.6: stable resize handle + proactive unread state */
+#tua-panel .tua-window {
+  position: relative;
+}
+#tua-resize-handle {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  opacity: .52;
+  touch-action: none;
+  border-radius: 5px;
+}
+#tua-resize-handle::before {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid rgba(110, 79, 31, .55);
+  border-bottom: 2px solid rgba(110, 79, 31, .55);
+}
+#tua-resize-handle:hover {
+  opacity: .9;
+  background: rgba(255, 250, 240, .66);
+}
+#tua-panel.tua-resizing,
+body.tua-panel-resizing-body {
+  user-select: none !important;
+}
+#tua-panel.tua-collapsed #tua-resize-handle {
+  display: none !important;
+}
+.tua-checkbox-row {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.tua-checkbox-row input {
+  width: auto !important;
+}
+#tua-panel.tua-proactive-unread.tua-collapsed #tua-collapsed-button {
+  transform: rotate(180deg);
+  background: #f2d89f !important;
+}
