@@ -1,5 +1,5 @@
 /*
- * 🐕콩고물 톡 v4.0.4
+ * 🐕콩고물 톡 v4.0.6
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -698,13 +698,13 @@ async function useSelectedProfileIfNeeded(callback) {
   const previous = await getCurrentProfileName();
 
   if (!previous) {
-    throw new Error('현재 연결 프로필을 확인할 수 없어 저장된 프로필로 전환하지 않았습니다. 본채팅 프로필 보호를 위해 생성을 중단합니다.');
+    throw new Error('메인 API를 확인할 수 없어 콩고물 톡 전용 API를 사용할 수 없습니다.');
   }
 
   if (previous === selected) return await callback();
 
   try {
-    setStatus(`콩고물 톡에서만 ${selected} 프로필로 생성 중...`);
+    setStatus(`콩고물 톡 전용 API(${selected})로 생성 중...`);
     await runSlashCommand(profileCommand(selected));
     await wait(120);
     return await callback();
@@ -712,10 +712,10 @@ async function useSelectedProfileIfNeeded(callback) {
     try {
       await runSlashCommand(profileCommand(previous));
       await wait(120);
-      setStatus(`본채팅 연결 프로필을 ${previous}(으)로 복구했습니다.`);
+      setStatus(`메인 API로 돌아왔습니다.`);
     } catch (e) {
       console.error('[Konggomul] profile restore failed', e);
-      setStatus(`프로필 복구 실패: 본채팅 연결 프로필을 확인해 주세요.`);
+      setStatus(`API 전환 후 메인 API로 돌아오지 못했습니다. 연결 프로필을 확인해 주세요.`);
     }
   }
 }
@@ -1074,7 +1074,7 @@ function renderModePicker() {
   picker.append('<div class="tua-mode-picker-title">어떤 모드로 시작할까요?</div>');
   const buttons = $('<div class="tua-mode-picker-buttons"></div>');
   for (const [key, mode] of Object.entries(MODES)) {
-    buttons.append(`<button type="button" data-mode="${escapeHtml(key)}"><b>${escapeHtml(mode.label)}</b></button>`);
+    buttons.append(`<button type="button" data-mode="${escapeHtml(key)}">${escapeHtml(mode.label)}</button>`);
   }
   picker.append(buttons);
   picker.find('button[data-mode]').on('click', async function () {
@@ -1400,16 +1400,15 @@ function renderSettings() {
           <div class="tua-global-profile-title">AI 연결 프로필</div>
           <div class="tua-profile-row">
             <select id="tua-setting-profile-mode">
-              <option value="current">현재 선택된 ST 연결</option>
-              <option value="profile">저장된 Connection Profile 선택</option>
+              <option value="current">메인 API</option>
+              <option value="profile">콩고물 톡 전용 API</option>
             </select>
             <button type="button" id="tua-setting-refresh-profiles" title="프로필 목록 새로고침">↻</button>
           </div>
           <label id="tua-setting-profile-select-wrap">프로필 선택
             <select id="tua-setting-profile"></select>
           </label>
-          <div class="tua-mini-note">저장된 프로필을 선택하면 콩고물 톡 생성 때만 잠시 전환하고, 생성 후 원래 ST 연결로 복구합니다.</div>
-        </div>
+                  </div>
       </div>
     </div>
   </div>`;
