@@ -999,23 +999,23 @@ body.tua-panel-resizing-body {
   --tua-collapsed-bg-hover: rgba(255, 247, 221, .24);
 }
 #tua-panel[data-tua-theme="chocoStrawberry"] {
-  --tua-bg: #fff0f4;
-  --tua-bg-2: #f2d1d6;
-  --tua-card: #fff8f8;
-  --tua-line: #d9a9a1;
-  --tua-text: #2b1713;
-  --tua-muted: #835951;
-  --tua-user-bubble: #ffd3df;
-  --tua-char-bubble: #fff6ec;
-  --tua-accent: #9a5544;
-  --tua-accent-dark: #65352b;
-  --tua-shadow: rgba(89, 42, 33, .18);
-  --tua-header-a: #ffd0dc;
-  --tua-header-b: #efb3bd;
-  --tua-header-c: #d5aa8b;
-  --tua-panel-bg-end: #ffe7ed;
-  --tua-collapsed-bg: rgba(255, 208, 220, .16);
-  --tua-collapsed-bg-hover: rgba(255, 208, 220, .28);
+  --tua-bg: #fff1ec;
+  --tua-bg-2: #f0d1c4;
+  --tua-card: #fff8f3;
+  --tua-line: #d8aa9c;
+  --tua-text: #342018;
+  --tua-muted: #876257;
+  --tua-user-bubble: #f3b7b5;
+  --tua-char-bubble: #f6ddcf;
+  --tua-accent: #b56b61;
+  --tua-accent-dark: #6d3c31;
+  --tua-shadow: rgba(96, 50, 39, .18);
+  --tua-header-a: #f5c3bf;
+  --tua-header-b: #e4ad9b;
+  --tua-header-c: #d2a17f;
+  --tua-panel-bg-end: #fbe5dc;
+  --tua-collapsed-bg: rgba(245, 195, 191, .16);
+  --tua-collapsed-bg-hover: rgba(245, 195, 191, .28);
 }
 #tua-panel[data-tua-theme="melonSoda"] {
   --tua-bg: #efffe9;
@@ -1147,36 +1147,36 @@ body.tua-panel-resizing-body {
   --tua-collapsed-bg-hover: rgba(255, 247, 221, .26);
 }
 #tua-panel[data-tua-theme="chocoStrawberry"] {
-  --tua-bg: #261615;
-  --tua-bg-2: #34201f;
-  --tua-card: #3b2522;
-  --tua-line: #6a4842;
-  --tua-text: #faeadf;
-  --tua-muted: #c99b91;
-  --tua-bubble-text: #fff4ec;
-  --tua-user-bubble: #7a3d4b;
-  --tua-char-bubble: #4a2d28;
-  --tua-accent: #d2878e;
-  --tua-accent-dark: #f0b7a5;
-  --tua-shadow: rgba(12, 6, 5, .38);
-  --tua-header-a: #3a201f;
-  --tua-header-b: #5a2d36;
-  --tua-header-c: #7b4a55;
-  --tua-panel-bg-end: #301d1b;
-  --tua-roombar-bg: rgba(64, 38, 34, .92);
-  --tua-room-list-bg: rgba(48, 30, 28, .96);
-  --tua-room-item-bg: rgba(72, 44, 39, .86);
-  --tua-room-active-bg: #693844;
-  --tua-settings-bg: rgba(45, 27, 25, .98);
-  --tua-inputbar-bg: rgba(50, 31, 29, .96);
-  --tua-input-bg: #211413;
-  --tua-button-bg: rgba(80, 49, 44, .88);
-  --tua-button-hover: rgba(103, 60, 57, .96);
-  --tua-send-bg: #8b4b5a;
-  --tua-danger-bg: rgba(74, 45, 40, .76);
-  --tua-danger-color: #f2d1c4;
-  --tua-collapsed-bg: rgba(122, 61, 75, .20);
-  --tua-collapsed-bg-hover: rgba(122, 61, 75, .32);
+  --tua-bg: #fff0eb;
+  --tua-bg-2: #efd0c1;
+  --tua-card: #fff7f1;
+  --tua-line: #d7a99b;
+  --tua-text: #352119;
+  --tua-muted: #896357;
+  --tua-bubble-text: #2f1d16;
+  --tua-user-bubble: #f0aaa8;
+  --tua-char-bubble: #f6ddcf;
+  --tua-accent: #b96f65;
+  --tua-accent-dark: #704034;
+  --tua-shadow: rgba(104, 58, 45, .18);
+  --tua-header-a: #f6c2bd;
+  --tua-header-b: #e7ad99;
+  --tua-header-c: #d1a17c;
+  --tua-panel-bg-end: #fae3d9;
+  --tua-roombar-bg: rgba(255, 241, 235, .78);
+  --tua-room-list-bg: rgba(237, 207, 193, .78);
+  --tua-room-item-bg: rgba(255, 248, 243, .86);
+  --tua-room-active-bg: #efbbb4;
+  --tua-settings-bg: rgba(255, 246, 240, .96);
+  --tua-inputbar-bg: rgba(255, 241, 235, .84);
+  --tua-input-bg: #fffaf6;
+  --tua-button-bg: rgba(255, 248, 243, .84);
+  --tua-button-hover: #f8d5cb;
+  --tua-send-bg: #d98983;
+  --tua-danger-bg: rgba(255, 248, 243, .68);
+  --tua-danger-color: #734237;
+  --tua-collapsed-bg: rgba(246, 194, 189, .18);
+  --tua-collapsed-bg-hover: rgba(246, 194, 189, .30);
 }
 #tua-panel[data-tua-theme="melonSoda"] {
   --tua-bg: #eef5dc;
