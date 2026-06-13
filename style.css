@@ -1854,3 +1854,38 @@ body.tua-panel-resizing-body {
   --tua-collapsed-bg: rgba(185, 220, 184, .16);
   --tua-collapsed-bg-hover: rgba(185, 220, 184, .24);
 }
+
+
+/* final melon soda nudge + display version reset to v4.0.0 */
+#tua-panel[data-tua-theme="melonSoda"] {
+  --tua-bg: #f6fbf2;
+  --tua-bg-2: #eef7e8;
+  --tua-card: #fcfff9;
+  --tua-line: #cfe0bf;
+  --tua-text: #2d3a2a;
+  --tua-muted: #76856e;
+  --tua-bubble-text: #243022;
+  --tua-user-bubble: #e0efd0;
+  --tua-char-bubble: #fbfff7;
+  --tua-accent: #a8c98d;
+  --tua-accent-dark: #7b9d67;
+  --tua-shadow: rgba(94, 119, 82, .11);
+  --tua-header-a: #dcedc8;
+  --tua-header-b: #dcedc8;
+  --tua-header-c: #dcedc8;
+  --tua-panel-bg-end: #f6fbf2;
+  --tua-roombar-bg: #f1f8ea;
+  --tua-room-list-bg: #e9f2df;
+  --tua-room-item-bg: #fbfef8;
+  --tua-room-active-bg: #e5f0d7;
+  --tua-settings-bg: #f8fcf4;
+  --tua-inputbar-bg: #f1f8ea;
+  --tua-input-bg: #fcfff9;
+  --tua-button-bg: #fbfef8;
+  --tua-button-hover: #e8f1dd;
+  --tua-send-bg: #c5dda8;
+  --tua-danger-bg: #fbfef8;
+  --tua-danger-color: #67805a;
+  --tua-collapsed-bg: rgba(197, 221, 168, .16);
+  --tua-collapsed-bg-hover: rgba(197, 221, 168, .24);
+}
