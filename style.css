@@ -1388,3 +1388,71 @@ body.tua-panel-resizing-body {
 .tua-settings-mini .tua-profile-row select {
   font-weight: 400 !important;
 }
+
+
+/* v4.0.10 palette refinement: sweeter milk-tea konggomul + more balanced milk-chocolate strawberry */
+#tua-panel[data-tua-theme="konggomul"] {
+  --tua-bg: #f8ecdc;
+  --tua-bg-2: #ead5bd;
+  --tua-card: #fff8ef;
+  --tua-line: #d3b894;
+  --tua-text: #2c2016;
+  --tua-muted: #86684b;
+  --tua-bubble-text: #24180f;
+  --tua-user-bubble: #e8c894;
+  --tua-char-bubble: #fff1dc;
+  --tua-accent: #b48655;
+  --tua-accent-dark: #7a5630;
+  --tua-shadow: rgba(101, 72, 41, .18);
+  --tua-header-a: #f3d9b8;
+  --tua-header-b: #e8c696;
+  --tua-header-c: #ddb783;
+  --tua-panel-bg-end: #f5e2cc;
+  --tua-roombar-bg: rgba(255, 244, 229, .72);
+  --tua-room-list-bg: rgba(238, 213, 184, .70);
+  --tua-room-item-bg: rgba(255, 249, 239, .86);
+  --tua-room-active-bg: #ebcfa1;
+  --tua-settings-bg: rgba(255, 246, 234, .97);
+  --tua-inputbar-bg: rgba(249, 233, 211, .88);
+  --tua-input-bg: #fffaf3;
+  --tua-button-bg: rgba(255, 246, 232, .84);
+  --tua-button-hover: #f1d9b8;
+  --tua-send-bg: #dfba7c;
+  --tua-danger-bg: rgba(255, 246, 232, .68);
+  --tua-danger-color: #704c2c;
+  --tua-collapsed-bg: rgba(239, 211, 177, .18);
+  --tua-collapsed-bg-hover: rgba(239, 211, 177, .30);
+}
+
+#tua-panel[data-tua-theme="chocoStrawberry"] {
+  --tua-bg: #f2ded2;
+  --tua-bg-2: #d9b79f;
+  --tua-card: #fff0e7;
+  --tua-line: #b98268;
+  --tua-text: #3a251b;
+  --tua-muted: #7d5645;
+  --tua-bubble-text: #321f17;
+  --tua-user-bubble: #dfb2ad;
+  --tua-char-bubble: #d9b394;
+  --tua-accent: #9f664e;
+  --tua-accent-dark: #6f4433;
+  --tua-shadow: rgba(83, 47, 31, .20);
+  --tua-header-a: #e8beb5;
+  --tua-header-b: #c99578;
+  --tua-header-c: #a96f54;
+  --tua-panel-bg-end: #ead0bd;
+  --tua-roombar-bg: rgba(232, 200, 181, .86);
+  --tua-room-list-bg: rgba(211, 174, 151, .84);
+  --tua-room-item-bg: rgba(255, 238, 229, .88);
+  --tua-room-active-bg: #d6a18c;
+  --tua-settings-bg: rgba(246, 224, 212, .97);
+  --tua-inputbar-bg: rgba(222, 190, 170, .90);
+  --tua-input-bg: #fff1e8;
+  --tua-button-bg: rgba(246, 222, 209, .88);
+  --tua-button-hover: #d8a892;
+  --tua-send-bg: #b8755e;
+  --tua-danger-bg: rgba(255, 238, 229, .70);
+  --tua-danger-color: #734537;
+  --tua-collapsed-bg: rgba(204, 151, 127, .18);
+  --tua-collapsed-bg-hover: rgba(204, 151, 127, .30);
+}
