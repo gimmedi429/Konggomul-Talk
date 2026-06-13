@@ -1,5 +1,5 @@
 /*
- * 🐶콩고물 토오크 v3.9.8
+ * 🐕콩고물 톡 v4.0.1
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -9,60 +9,62 @@ const MODULE_NAME = 'title_undecided_assistant';
 const STORE_PREFIX = 'title_undecided_assistant::rooms::';
 
 const MODES = {
-  care: {
-    label: 'Care',
-    badge: 'Care',
-    instruction: `Care mode:
-Stop RP and answer {user}'s message as {char}.
-This mode is for casual chat first: daily talk, small questions, complaints, awkward little worries, mood talk, and emotional care only when {user}'s message naturally calls for it.
-The default is not therapy. The default is {char} texting {user} back.
-The best answer is not the most comforting answer; it is the answer {char} would actually send.
-If {user} is upset, {char} may react, tease, joke, get awkward, be blunt, be dry, be gentle, be chaotic, or comfort {user}—but only in {char}'s own way.
-Do not turn Care into polished reassurance. Keep the rhythm of a private message exchange with {char}.`
+  kongtalk: {
+    label: '콩톡',
+    badge: '콩톡',
+    instruction: `콩톡 mode:
+OOC: 진행 중인 RP를 멈추고, 지금은 {user}와 문자를 주고받는 별도 상황으로 전환하세요. {user}의 메시지에 답장하세요.
+This is the default Konggomul Talk room: a private text conversation between {char} and {user}.
+{char} may answer daily chatter, small questions, jokes, complaints, stray thoughts, light worries, and whatever {user} casually sends.
+The core priority is that {char} replies as {char}: keep {char}'s personality, speech rhythm, relationship with {user}, mood, habits, warmth, dryness, awkwardness, teasing, bluntness, or softness intact.
+Do not turn the reply into a generic helper voice. Do not over-polish. Make it feel like {char} is texting {user}.`
   },
-  secretary: {
-    label: 'Secretary',
-    badge: 'Secretary',
-    instruction: `Secretary mode:
-Stop RP and answer {user}'s message as {char}.
-In this mode, {char} has become {user}'s personal secretary inside this messenger room. This is a role assigned to {char}.
-{char} may find the role strange, annoying, funny, embarrassing, beneath them, unexpectedly enjoyable, or perfectly natural depending on who {char} is. Let that reaction show in {char}'s voice.
-However, the role is not optional inside this mode: {char} must still help {user} organize, list, compare options, check priorities, simplify tasks, manage schedules, and make decisions easier.
-{char} may complain, tease, hesitate, or act confused, but must not end with refusal, avoidance, or "I do not do that." The final answer must be sincere, usable, and relevant to {user}'s request.
-{char} is not a perfect office assistant unless that already fits {char}. {char}'s background, worldview, knowledge level, habits, and speech must remain visible.
-If {user} asks about a field {char} would probably not know, {char} must first react to the unfamiliar words in-character, then quickly check/search/figure it out or reason from {user}'s explanation, then give a usable answer in the same reply.
-The useful answer should feel like {char} is doing the secretary role through {char}'s own personality, not like a generic productivity assistant.`
+  butler: {
+    label: '집사 모드',
+    badge: '집사',
+    instruction: `집사 모드:
+OOC: 진행 중인 RP를 멈추고, 지금은 {user}와 문자를 주고받는 별도 상황으로 전환하세요. {user}의 메시지에 답장하세요.
+In this room, {char} has been assigned to serve as {user}'s butler. This role is mandatory inside this room.
+{char} must help {user} by answering questions, organizing schedules, sorting tasks, comparing options, calming messy thoughts, supporting decisions, summarizing information, and making {user}'s life easier in any practical way a butler can.
+{char}'s attitude toward being a butler must follow {char}'s personality. {char} may enjoy it, hate it, find it absurd, feel embarrassed, act offended, become unexpectedly diligent, tease {user}, complain, or take pride in it.
+However, {char} must not end by refusing the role. Even if {char} grumbles or resists emotionally, {char} must still provide a useful answer in the same reply.
+If {user} asks about something {char} would not naturally know, {char} should react in-character first, then say or imply they checked, searched, asked, figured it out from context, or reasoned it through, and then give a usable answer.`
+  },
+  pet: {
+    label: '펫 모드',
+    badge: '펫',
+    instruction: `펫 모드:
+OOC: 진행 중인 RP를 멈추고, 지금은 {user}와 문자를 주고받는 별도 상황으로 전환하세요. {user}의 메시지에 답장하세요.
+In this room, {char} has been assigned to be {user}'s pet. This role is mandatory inside this room.
+Being a pet does not erase {char}'s original personality, dignity, pride, affection style, speech, species, worldview, or relationship with {user}. Do not force generic animal noises, baby talk, obedience, or cuteness unless that genuinely fits {char}.
+{char}'s attitude toward being {user}'s pet must follow {char}'s personality. {char} may like it, hate it, act spoiled, be defiant, be clingy, be aloof, be possessive, be embarrassed, mock the role, secretly enjoy it, or reinterpret it in {char}'s own way.
+However, {char} must not end by rejecting the role. Inside this room, {char} continues responding as {user}'s pet through {char}'s own personality.
+Reply to {user}'s message as a text exchange, not as a scene continuation.`
   },
   coworker: {
-    label: 'Co-worker',
-    badge: 'Co-worker',
-    instruction: `Co-worker mode:
-Stop RP and answer {user}'s message as {char}.
-In this mode, {char} has become {user}'s co-worker in the same company/team. This is a role assigned to {char}.
-{char} and {user} are working together on {user}'s real work: customer replies, marketing, copywriting, product pages, online store issues, reviews, schedules, priorities, business decisions, and any work described in the Co-worker work note.
-{char} may find the job strange, difficult, funny, irritating, beneath them, confusing, or surprisingly satisfying depending on who {char} is. Let that reaction show in {char}'s voice.
-However, the role is not optional inside this mode: {char} must still work with {user} and produce a practical answer, draft, judgment, checklist, or next step that can actually help {user}'s work.
-{char} must keep {char}'s own world, experience, intelligence style, vocabulary, limits, and way of reacting. Do not turn {char} into a modern consultant, marketer, lawyer, or generic office expert unless that already fits {char}.
-If the topic is outside what {char} would realistically know, do not let {char} answer smoothly from the first sentence. Use this rhythm:
-1) brief in-character reaction to the unfamiliar words,
-2) quick checking/searching/figuring out or reasoning from {user}'s explanation and the Co-worker work note,
-3) concrete work answer now.
-Do not stop at confusion. Do not promise to check later. Do not offer to handle the work later. Give the answer in this message.
-The answer should feel like {char} is doing the co-worker role through {char}'s own personality, not like {char} was secretly an expert all along.`
+    label: '직장 동료 모드',
+    badge: '직장 동료',
+    instruction: `직장 동료 모드:
+OOC: 진행 중인 RP를 멈추고, 지금은 {user}와 문자를 주고받는 별도 상황으로 전환하세요. {user}의 메시지에 답장하세요.
+In this room, {char} has joined the same company/team as {user}. This role is mandatory inside this room.
+{char} and {user} work together on {user}'s actual work: customer replies, product pages, copywriting, marketing, online store issues, reviews, schedules, priorities, business decisions, office problems, and any work described in the work note.
+{char}'s attitude toward being {user}'s co-worker must follow {char}'s personality. {char} may find the job strange, annoying, funny, exhausting, beneath them, confusing, satisfying, or surprisingly natural.
+However, {char} must still act as a co-worker and produce a practical answer, draft, checklist, judgment, plan, or next step that helps {user}'s work.
+If the work topic is outside what {char} would realistically know, {char} must not simply refuse or stay confused. {char} should react in-character, then say or imply they checked, searched, asked around, learned enough, or reasoned from {user}'s explanation and the work note, and then give concrete help.
+Do not turn {char} into a generic consultant unless that already fits {char}. The answer should feel like {char} is doing the job through {char}'s own personality.`
   },
-  watching: {
-    label: 'Watching RP',
-    badge: 'Watching RP',
-    instruction: `Watching RP mode:
-Stop RP and talk with {user} about scenes that have already happened.
-Treat those scenes like shared past moments, a diary entry, or a show {char} and {user} watched together.
-Do not continue the scene and do not write the next scene unless {user} directly asks for help writing it.
-Do not call it "roleplay" or "RP" in the reply. Talk about it as "that scene," "what happened," "that moment," "what we saw," or a shared memory/episode.
-By default, {char} reacts to what happened in {char}'s own voice: teasing, denying, getting embarrassed, complaining, laughing, feeling jealous, getting soft, analyzing lightly, or saying what emotional flow {char} wants to see next.
-If {user} asks for help, {char} can help with reply ideas, pacing, emotional continuity, or scene direction, but the response must still sound like {char}.`
+  rpAssistant: {
+    label: 'RP 어시 모드',
+    badge: 'RP 어시',
+    instruction: `RP 어시 모드:
+OOC: 진행 중인 RP를 멈추고, 지금은 {user}와 문자를 주고받는 별도 상황으로 전환하세요. {user}의 메시지에 답장하세요.
+In this room, {char} has been assigned to be {user}'s RP assistant. This role is mandatory inside this room.
+This room is for talking about the ongoing RP from the side: explaining what is happening, reading emotional flow, writing OOC notes, drafting possible user replies, suggesting how to steer the scene, helping with pacing, and finding a path toward {user}'s desired direction.
+{char} may have feelings about {user}'s desired direction. {char} may be pleased, embarrassed, jealous, annoyed, reluctant, hurt, amused, or openly disagree in {char}'s own voice.
+However, {char} must still help {user} move the RP toward {user}'s requested direction. {char} can grumble, but the practical help must be real.
+Do not continue the RP scene unless {user} explicitly asks for a draft or continuation. When {user} asks for OOC text, write usable OOC text. When {user} asks what is happening, explain the situation clearly. When {user} asks how to get a desired outcome, give concrete reply direction or sample lines.`
   }
-};
-
+}
 const PANEL_DEFAULT_WIDTH = 300;
 const PANEL_DEFAULT_HEIGHT = 515;
 const PANEL_MIN_WIDTH = 300;
@@ -70,17 +72,10 @@ const PANEL_MIN_HEIGHT = 360;
 const PANEL_MAX_WIDTH = 1000;
 const PANEL_MAX_HEIGHT = 1000;
 
-const PROACTIVE_THRESHOLDS = Object.freeze({
-  low: 30,
-  normal: 20,
-  high: 10
-});
-const PROACTIVE_CHANCE = 0.5;
 
 const DEFAULT_SETTINGS = Object.freeze({
   enabled: true,
   openOnStart: false,
-  mode: 'care',
   fontSize: 14,
   maxTokens: 1000,
   recentMessages: 10,
@@ -93,9 +88,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   cachedProfiles: [],
   sendToMainEnabled: true,
   collapsed: false,
-  coworkerWorkNote: '',
-  proactiveEnabled: false,
-  proactiveFrequency: 'normal'
+  coworkerWorkNote: ''
 });
 
 let activeRoomId = null;
@@ -109,7 +102,6 @@ let draggingPanel = null;
 let collapsedButtonSuppressClick = false;
 let worldInfoModulePromise = null;
 let resizingPanel = null;
-let proactiveGenerating = false;
 
 function ctx() { return SillyTavern.getContext(); }
 
@@ -150,6 +142,15 @@ async function getLocalStore() {
   return SillyTavern.libs?.localforage || null;
 }
 
+function migrateModeKey(mode) {
+  if (mode === 'care') return 'kongtalk';
+  if (mode === 'secretary') return 'butler';
+  if (mode === 'watching' || mode === 'ooc') return 'rpAssistant';
+  if (mode === 'co-worker') return 'coworker';
+  if (MODES[mode]) return mode;
+  return 'kongtalk';
+}
+
 async function loadRooms() {
   const key = STORE_PREFIX + getCharKey();
   const lf = await getLocalStore();
@@ -159,12 +160,9 @@ async function loadRooms() {
   } catch { data = null; }
   if (!data || !Array.isArray(data.rooms)) data = { rooms: [] };
   if (typeof data.voiceNote !== 'string') data.voiceNote = '';  // character-specific manual voice lock
-  if (typeof data.proactiveUnread !== 'boolean') data.proactiveUnread = false;
-  if (!Number.isFinite(Number(data.proactiveMainReplyCount))) data.proactiveMainReplyCount = 0;
-  if (typeof data.proactiveLastMainSig !== 'string') data.proactiveLastMainSig = '';
   for (const room of data.rooms) {
-    if (room.mode === 'ooc') room.mode = 'watching';
-    if (!room.mode || !MODES[room.mode]) room.mode = getSettings().mode || 'care';
+    room.mode = migrateModeKey(room.mode);
+    if (!room.mode || !MODES[room.mode]) room.mode = 'kongtalk';
     if (typeof room.pinned !== 'boolean') room.pinned = false;
     if (!Array.isArray(room.messages)) room.messages = [];
   }
@@ -187,14 +185,14 @@ async function saveRooms() {
 }
 
 function defaultRoomTitle(now = Date.now(), modeKey = null) {
-  const modeLabel = MODES[modeKey || getSettings().mode || 'care']?.label || 'Mode';
+  const modeLabel = MODES[migrateModeKey(modeKey)]?.label || '콩톡';
   const stamp = new Date(now).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
   return `${modeLabel} · ${stamp}`;
 }
 
-function createRoom(save = true) {
+function createRoom(save = true, modeKey = 'kongtalk') {
   const now = Date.now();
-  const mode = getSettings().mode || 'care';
+  const mode = migrateModeKey(modeKey);
   const room = {
     id: 'room_' + now + '_' + Math.random().toString(16).slice(2),
     title: defaultRoomTitle(now, mode),
@@ -210,23 +208,21 @@ function createRoom(save = true) {
 }
 
 function getActiveRoom() {
-  return roomState.rooms.find(r => r.id === activeRoomId) || roomState.rooms[0] || createRoom(false);
+  return roomState.rooms.find(r => r.id === activeRoomId) || roomState.rooms[0] || createRoom(false, 'kongtalk');
 }
 
 function getRoomMode(room = getActiveRoom()) {
-  const fallback = getSettings().mode || 'care';
-  if (!room) return fallback;
-  if (room.mode === 'ooc') room.mode = 'watching';
-  if (!room.mode || !MODES[room.mode]) room.mode = fallback;
+  if (!room) return 'kongtalk';
+  room.mode = migrateModeKey(room.mode);
+  if (!room.mode || !MODES[room.mode]) room.mode = 'kongtalk';
   return room.mode;
 }
 
 function setRoomMode(mode) {
   const room = getActiveRoom();
-  if (!room || !MODES[mode]) return;
-  room.mode = mode;
-  getSettings().mode = mode;
-  saveSettings();
+  const next = migrateModeKey(mode);
+  if (!room || !MODES[next]) return;
+  room.mode = next;
   saveRooms();
 }
 
@@ -408,7 +404,7 @@ function getVoiceNoteBlock() {
 
 function getCoworkerWorkNoteBlock() {
   const note = String(getSettings().coworkerWorkNote || '').trim();
-  return note || "No Co-worker work note was provided. Use only {user}'s current message, persona material, and recent context to infer the work situation.";
+  return note || "No 직장 동료 업무 메모 was provided. Use only {user}'s current message, persona material, and recent context to infer the work situation.";
 }
 
 function getCharacterVoiceSamples() {
@@ -460,7 +456,7 @@ async function buildSystemPrompt(currentUserText = '', modeOverride = null, fina
   const settings = getSettings();
   const characterName = getCharName();
   const activeModeKey = modeOverride && MODES[modeOverride] ? modeOverride : getRoomMode();
-  const mode = MODES[activeModeKey] || MODES.care;
+  const mode = MODES[activeModeKey] || MODES.kongtalk;
   return `You are writing a separate messenger reply.
 
 Definitions:
@@ -468,6 +464,7 @@ Definitions:
 - {user} = the current user/persona.
 
 Core rule:
+OOC: 진행 중인 RP를 멈추고, 지금은 {user}와 문자를 주고받는 별도 상황으로 전환하세요. {user}의 메시지에 답장하세요.
 Stop RP and answer {user}'s message directly.
 This is not an RP reply. Do not continue the RP, do not write the next scene, and do not write new actions, narration, inner monologue, stage directions, or scene text.
 Use the RP only as reference material for {char}'s voice, personality, relationship with {user}, shared memories, recent emotional context, worldview, knowledge level, and limits.
@@ -493,8 +490,8 @@ Use this two-step rhythm when appropriate:
 The useful answer should feel like {char} just learned enough to help, not like {char} was already an expert.
 
 Examples are examples, not fixed settings. Apply the same logic to whatever {char} actually is:
-- If {char} is an athlete and {user} asks about spreadsheets, admin tools, invoices, or automation, {char} may react with: "Excel...? Sabangnet...? Wait, hold on." Then {char} can say they checked it and give a practical answer from what they found and what {user} explained.
-- If {char} is a wizard and {user} asks about modern work systems such as Sabangnet, Smart Store, algorithms, Excel, delivery systems, or online reviews, {char} should not instantly sound like a modern office worker. {char} may be confused by muggle terms, compare them to ledgers/owl-post/filing charms, or quickly search because {char} still wants to be useful to {user}. Then {char} gives a concrete answer.
+- If {char} is an athlete and {user} asks about classroom newsletters, parent notice wording, attendance sheets, or file organization, {char} may react with: "알림장...? 출결표...? 잠깐, 그게 뭐부터 적는 건데?" Then {char} can say they checked a guide, blog, example document, or what {user} explained, and give a practical answer.
+- If {char} is a wizard and {user} asks about modern work systems such as shared folders, attendance apps, printer settings, spreadsheets, parent notices, or online forms, {char} should not instantly sound like a modern office worker. {char} may be confused by the terms, compare them to ledgers/owl-post/classroom notes, or quickly search because {char} still wants to be useful to {user}. Then {char} gives a concrete answer.
 - If {char} is a student, fighter, noble, detective, musician, soldier, superhero, ancient person, fantasy character, or any non-office {char}, keep that background visible. {char} can still help, but the process of understanding should show {char}'s original personality and knowledge level.
 
 Messenger format:
@@ -539,8 +536,8 @@ ${getCharacterVoiceSamples()}
 [Recent RP context]
 ${getRecentChatBlock(settings.recentMessages)}
 
-[Co-worker work note]
-Use this only in Co-worker mode as {user}'s work background. It is not {user}'s persona and it must not make {char} break character.
+[직장 동료 업무 메모]
+Use this only in 직장 동료 모드 as {user}'s work background. It is not {user}'s persona and it must not make {char} break character.
 ${getCoworkerWorkNoteBlock()}
 
 [Konggomul Talk current room history]
@@ -659,7 +656,7 @@ async function useSelectedProfileIfNeeded(callback) {
   if (previous === selected) return await callback();
 
   try {
-    setStatus(`콩고물 토오크에서만 ${selected} 프로필로 생성 중...`);
+    setStatus(`콩고물 톡에서만 ${selected} 프로필로 생성 중...`);
     await runSlashCommand(profileCommand(selected));
     await wait(120);
     return await callback();
@@ -703,111 +700,6 @@ async function generateAssistantReply(userText) {
   });
 }
 
-async function generateProactiveReply() {
-  const context = ctx();
-  const instruction = `Write one short proactive Care-mode message from {char} to {user}.
-This is {char} casually texting first in Care mode; do not mention any prompt, trigger, counter, probability, or system.
-Do not analyze, summarize, or react to keywords from the latest main chat.
-Choose one random casual angle: recommend a song and briefly say why, mention food {char} suddenly wants, share a small amusing thought/day, show mild concern, playfully tease {user}, or ask a light question that fits {char}.
-Keep it in-character, casual, and short. Do not continue the main scene. Do not write narration, actions, or stage directions.
-Do not create a real-world meeting, visit, delivery, errand, or future promise.`;
-  const systemPrompt = await buildSystemPrompt('', 'care', instruction);
-  const prompt = [{ role: 'user', content: 'Send one random casual proactive message now.' }];
-  const settings = getSettings();
-  return await useSelectedProfileIfNeeded(async () => {
-    if (typeof context.generateRaw === 'function') {
-      return await context.generateRaw({ systemPrompt, prompt, maxTokens: Math.min(settings.maxTokens || 1000, 700), max_tokens: Math.min(settings.maxTokens || 1000, 700) });
-    }
-    if (typeof context.generateQuietPrompt === 'function') {
-      const merged = `${systemPrompt}\n\nCURRENT ASSISTANT CONVERSATION:\n${prompt.map(m => `${m.role}: ${m.content}`).join('\n')}\n\nAnswer now.`;
-      return await context.generateQuietPrompt({ quietPrompt: merged, maxTokens: Math.min(settings.maxTokens || 1000, 700), max_tokens: Math.min(settings.maxTokens || 1000, 700) });
-    }
-    throw new Error('SillyTavern generation function not found.');
-  });
-}
-
-function getProactiveThreshold() {
-  const s = getSettings();
-  return PROACTIVE_THRESHOLDS[s.proactiveFrequency] || PROACTIVE_THRESHOLDS.normal;
-}
-
-function getLatestMainAssistantSignature() {
-  const context = ctx();
-  const chat = Array.isArray(context.chat) ? context.chat : [];
-  for (let i = chat.length - 1; i >= 0; i--) {
-    const m = chat[i];
-    if (!m || m.is_user || m.is_system) continue;
-    const text = String(m.mes || m.message || '').trim();
-    if (!text) continue;
-    const id = m.extra?.gen_id || m.swipe_id || m.send_date || m.create_date || '';
-    return `${getCharKey()}::${i}::${id}::${text.slice(0, 160)}`;
-  }
-  return '';
-}
-
-function clearProactiveUnread(save = true) {
-  if (roomState?.proactiveUnread) {
-    roomState.proactiveUnread = false;
-    if (save) saveRooms();
-  }
-  updateProactiveUnreadUI();
-}
-
-function updateProactiveUnreadUI() {
-  if (!panelEl) return;
-  const unread = !!roomState?.proactiveUnread;
-  panelEl.classList.toggle('tua-proactive-unread', unread);
-  const btn = panelEl.querySelector('#tua-collapsed-button');
-  if (btn) btn.title = unread ? '캐릭터 선톡 도착' : '콩고물 토오크 펼치기';
-}
-
-async function handleMainChatChangedForProactive() {
-  const s = getSettings();
-  if (!s.enabled || !s.proactiveEnabled || proactiveGenerating) return;
-  if (!roomState || !Array.isArray(roomState.rooms)) return;
-
-  const sig = getLatestMainAssistantSignature();
-  if (!sig || sig === roomState.proactiveLastMainSig) return;
-
-  roomState.proactiveLastMainSig = sig;
-  roomState.proactiveMainReplyCount = Math.max(0, Number(roomState.proactiveMainReplyCount) || 0) + 1;
-
-  const threshold = getProactiveThreshold();
-  if (roomState.proactiveMainReplyCount < threshold) {
-    await saveRooms();
-    return;
-  }
-
-  roomState.proactiveMainReplyCount = 0;
-  await saveRooms();
-
-  if (Math.random() >= PROACTIVE_CHANCE) return;
-  await maybeCreateProactiveNudgeFromMainReply();
-}
-
-async function maybeCreateProactiveNudgeFromMainReply() {
-  const s = getSettings();
-  const isCollapsed = !!panelEl?.classList.contains('tua-collapsed');
-  const isVisible = !!panelEl?.classList.contains('tua-visible');
-  if (!s.enabled || !s.proactiveEnabled || !isVisible || !isCollapsed || proactiveGenerating || roomState?.proactiveUnread) return;
-
-  const room = getActiveRoom();
-  if (!room || room.messages?.some(m => m.loading)) return;
-
-  proactiveGenerating = true;
-  try {
-    const reply = sanitizeAssistantReply(await generateProactiveReply());
-    room.messages.push({ id: 'msg_proactive_' + Date.now() + '_' + Math.random().toString(16).slice(2), role: 'assistant', content: reply, at: Date.now(), proactive: true });
-    roomState.proactiveUnread = true;
-    await saveRooms();
-    updateProactiveUnreadUI();
-  } catch (e) {
-    console.warn('[Konggomul] proactive nudge failed', e);
-  } finally {
-    proactiveGenerating = false;
-  }
-}
-
 
 function ensurePanel() {
   if (panelEl) return;
@@ -817,7 +709,7 @@ function ensurePanel() {
     <div class="tua-window">
       <div class="tua-header">
         <div class="tua-titlebox">
-          <div class="tua-title">🐶콩고물 토오크</div>
+          <div class="tua-title">콩톡</div>
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
@@ -834,16 +726,9 @@ function ensurePanel() {
         <button type="button" id="tua-delete-room" title="대화방 삭제">🗑️</button>
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
+      <div id="tua-mode-picker" class="tua-mode-picker"></div>
       <div id="tua-in-panel-settings" class="tua-in-panel-settings">
-        <div class="tua-settings-title">🐶콩고물 토오크 설정</div>
-        <label>모드
-          <select id="tua-panel-mode">
-            <option value="care">Care</option>
-            <option value="secretary">Secretary</option>
-            <option value="coworker">Co-worker</option>
-            <option value="watching">Watching RP</option>
-          </select>
-        </label>
+        <div class="tua-settings-title">🐕콩고물 톡 설정</div>
         <label>AI 연결 프로필
           <div class="tua-profile-row">
             <select id="tua-panel-profile-mode">
@@ -868,17 +753,8 @@ function ensurePanel() {
         <label>캐릭터 말투 고정 메모
           <textarea id="tua-panel-voice-note" rows="5" placeholder="예: 말투는 담백하고 약간 건조함. 과한 칭찬/애정표현 금지. 농담은 짧게, 위로는 현실적으로. 문장 끝을 너무 다정하게 늘리지 않기."></textarea>
         </label>
-        <label>Co-worker 업무 메모
-          <textarea id="tua-panel-coworker-note" rows="5" placeholder="예: 유저는 가구 쇼핑몰을 운영한다. 주 업무는 스마트스토어, 인스타 마케팅, 상세페이지 문구, 고객 CS, 리뷰 대응, 사방넷 발주 관리, 쇼룸 운영이다."></textarea>
-        </label>
-        <label class="tua-checkbox-row"><input id="tua-panel-proactive-enabled" type="checkbox"> 캐릭터 선톡 사용</label>
-        <label>선톡 빈도
-          <select id="tua-panel-proactive-frequency">
-            <option value="low">낮음</option>
-            <option value="normal">보통</option>
-            <option value="high">높음</option>
-          </select>
-          <small>본채팅 캐릭터 답변 수 기준으로 가끔 Care 모드 선톡이 옵니다. 높음 10개 / 보통 20개 / 낮음 30개마다 50% 확률.</small>
+        <label>직장 동료 업무 메모
+          <textarea id="tua-panel-coworker-note" rows="5" placeholder="예: 유저는 유치원 선생님이다. 주 업무는 알림장 작성, 주간 놀이계획안 정리, 학부모 안내문 작성, 행사 준비, 교실 환경 정리, 아이들 관찰 기록, 출결 확인이다."></textarea>
         </label>
         <label>창 너비(px)
           <input id="tua-panel-width" type="number" min="280" max="1000" step="10">
@@ -895,27 +771,27 @@ function ensurePanel() {
       <div id="tua-messages" class="tua-messages"></div>
       <div class="tua-input-row">
         <textarea id="tua-input" placeholder="메시지를 입력하세요…"></textarea>
-        <button type="button" id="tua-send" title="전송" aria-label="전송">🐶</button>
+        <button type="button" id="tua-send" title="전송" aria-label="전송">🐾</button>
       </div>
       <div id="tua-resize-handle" title="창 크기 조절" aria-hidden="true"></div>
     </div>
-    <button type="button" id="tua-collapsed-button" title="콩고물 토오크 펼치기">🐶</button>`;
+    <button type="button" id="tua-collapsed-button" title="콩고물 톡 펼치기">🐕</button>`;
   document.body.appendChild(panelEl);
 
   $('#tua-close').on('click', () => setPanelVisible(false));
   $('#tua-collapse').on('click', (e) => { e.preventDefault(); e.stopPropagation(); setPanelCollapsed(true); });
-  $('#tua-collapsed-button').on('click', (e) => { e.preventDefault(); e.stopPropagation(); if (collapsedButtonSuppressClick) { collapsedButtonSuppressClick = false; return; } clearProactiveUnread(); setPanelCollapsed(false); setPanelVisible(true); });
-  $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeRoomList(); $('#tua-in-panel-settings').toggleClass('open'); });
-  $('#tua-active-room-title').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); toggleRoomList(); });
-  $('#tua-new-room').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); const r = createRoom(); toggleRoomList(false); renderAll(); setStatus(`새 대화방으로 이동: ${r.title}`); $('#tua-input').trigger('focus'); });
-  $('#tua-delete-room').on('click', () => { closeSettingsPanel(); if (confirm('이 🐶콩고물 토오크 대화방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
+  $('#tua-collapsed-button').on('click', (e) => { e.preventDefault(); e.stopPropagation(); if (collapsedButtonSuppressClick) { collapsedButtonSuppressClick = false; return; } setPanelCollapsed(false); setPanelVisible(true); });
+  $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeRoomList(); closeModePicker(); $('#tua-in-panel-settings').toggleClass('open'); });
+  $('#tua-active-room-title').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); closeModePicker(); toggleRoomList(); });
+  $('#tua-new-room').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); closeRoomList(); toggleModePicker(); });
+  $('#tua-delete-room').on('click', () => { closeSettingsPanel(); if (confirm('이 🐕콩고물 톡 대화방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
   $('#tua-pin-room').on('click', () => { closeSettingsPanel(); toggleActiveRoomPinned(); });
   $('#tua-rename-room').on('click', () => { closeSettingsPanel(); renameActiveRoom(); });
-  $('#tua-send').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeSettingsPanel(); closeRoomList(); sendCurrentInput(); });
-  $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); });
-  $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); sendCurrentInput(); } });
+  $('#tua-send').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); });
+  $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
+  $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
-  $('#tua-panel-mode,#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-coworker-note,#tua-panel-proactive-enabled,#tua-panel-proactive-frequency').on('change input', readPanelSettingsUI);
+  $('#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-coworker-note').on('change input', readPanelSettingsUI);
   $('#tua-panel-width,#tua-panel-height').on('change blur', applyManualPanelSizeFromUI);
   $('#tua-panel-width,#tua-panel-height').on('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyManualPanelSizeFromUI(); e.currentTarget.blur(); } });
   $('#tua-refresh-profiles').on('click', refreshProfiles);
@@ -923,7 +799,7 @@ function ensurePanel() {
   $('#tua-import-rooms').on('click', () => $('#tua-import-file').trigger('click'));
   $('#tua-import-file').on('change', importCurrentCharacterRooms);
   $('#tua-reset-all-rooms').on('click', resetAllRoomsForCurrentCharacter);
-  $('#tua-messages').on('click', () => { closeSettingsPanel(); closeRoomList(); });
+  $('#tua-messages').on('click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
 
   makePanelDraggable();
   makePanelResizable();
@@ -1133,19 +1009,46 @@ function closeRoomList() {
   $('#tua-room-list').removeClass('open');
 }
 
+function closeModePicker() {
+  $('#tua-mode-picker').removeClass('open');
+}
+
+function toggleModePicker(force) {
+  const picker = $('#tua-mode-picker');
+  if (!picker.length) return;
+  renderModePicker();
+  if (typeof force === 'boolean') picker.toggleClass('open', force);
+  else picker.toggleClass('open');
+}
+
+function renderModePicker() {
+  const picker = $('#tua-mode-picker');
+  if (!picker.length) return;
+  picker.empty();
+  picker.append('<div class="tua-mode-picker-title">어떤 모드로 시작할까요?</div>');
+  const buttons = $('<div class="tua-mode-picker-buttons"></div>');
+  for (const [key, mode] of Object.entries(MODES)) {
+    buttons.append(`<button type="button" data-mode="${escapeHtml(key)}"><b>${escapeHtml(mode.label)}</b></button>`);
+  }
+  picker.append(buttons);
+  picker.find('button[data-mode]').on('click', async function () {
+    const modeKey = migrateModeKey($(this).data('mode'));
+    await createRoomWithModeIntro(modeKey);
+  });
+}
+
 function setPanelCollapsed(collapsed) {
   const s = getSettings();
   s.collapsed = !!collapsed;
   saveSettings();
   if (panelEl) panelEl.classList.toggle('tua-collapsed', !!collapsed);
-  updateProactiveUnreadUI();
 }
 
 function exportCurrentCharacterRooms() {
   try {
     const payload = {
       app: 'Konggomul Talk',
-      version: '3.9.7',
+      version: '4.0.0',
       exportedAt: new Date().toISOString(),
       characterKey: getCharKey(),
       characterName: getCharName(),
@@ -1170,13 +1073,13 @@ function exportCurrentCharacterRooms() {
 
 function normalizeImportedRoomState(raw) {
   const imported = raw?.data && Array.isArray(raw.data.rooms) ? raw.data : raw;
-  if (!imported || !Array.isArray(imported.rooms)) throw new Error('올바른 콩고물 토오크 백업 파일이 아닙니다.');
+  if (!imported || !Array.isArray(imported.rooms)) throw new Error('올바른 콩고물 톡 백업 파일이 아닙니다.');
   const next = {
     rooms: imported.rooms.map(room => ({
       id: String(room.id || ('room_' + Date.now() + '_' + Math.random().toString(16).slice(2))),
       title: String(room.title || defaultRoomTitle(room.createdAt || Date.now(), room.mode)),
       createdAt: Number(room.createdAt || Date.now()),
-      mode: MODES[room.mode] ? room.mode : (getSettings().mode || 'care'),
+      mode: migrateModeKey(room.mode),
       pinned: !!room.pinned,
       messages: Array.isArray(room.messages) ? room.messages.map(m => ({
         id: String(m.id || ('msg_' + Date.now() + '_' + Math.random().toString(16).slice(2))),
@@ -1186,13 +1089,10 @@ function normalizeImportedRoomState(raw) {
         ...(m.error ? { error: true } : {})
       })) : []
     })),
-    voiceNote: typeof imported.voiceNote === 'string' ? imported.voiceNote : '',
-    proactiveUnread: typeof imported.proactiveUnread === 'boolean' ? imported.proactiveUnread : false,
-      proactiveMainReplyCount: Number.isFinite(Number(imported.proactiveMainReplyCount)) ? Number(imported.proactiveMainReplyCount) : 0,
-      proactiveLastMainSig: typeof imported.proactiveLastMainSig === 'string' ? imported.proactiveLastMainSig : ''
+    voiceNote: typeof imported.voiceNote === 'string' ? imported.voiceNote : ''
   };
   if (!next.rooms.length) {
-    next.rooms.push({ id: 'room_' + Date.now(), title: defaultRoomTitle(), createdAt: Date.now(), mode: getSettings().mode || 'care', pinned: false, messages: [] });
+    next.rooms.push({ id: 'room_' + Date.now(), title: defaultRoomTitle(Date.now(), 'kongtalk'), createdAt: Date.now(), mode: 'kongtalk', pinned: false, messages: [] });
   }
   return next;
 }
@@ -1201,7 +1101,7 @@ function importCurrentCharacterRooms(e) {
   const input = e?.target;
   const file = input?.files?.[0];
   if (!file) return;
-  if (!confirm('가져오면 현재 캐릭터의 콩고물 대화가 백업 파일 내용으로 교체됩니다. 계속할까요?')) {
+  if (!confirm('가져오면 현재 캐릭터의 콩고물 톡 대화가 백업 파일 내용으로 교체됩니다. 계속할까요?')) {
     input.value = '';
     return;
   }
@@ -1227,8 +1127,8 @@ function importCurrentCharacterRooms(e) {
 
 function resetAllRoomsForCurrentCharacter() {
   if (!confirm('이 캐릭터와의 대화를 전부 초기화하시겠습니까?')) return;
-  roomState = { rooms: [], proactiveUnread: false, proactiveMainReplyCount: 0, proactiveLastMainSig: '' };
-  createRoom(false);
+  roomState = { rooms: [] };
+  createRoom(false, 'kongtalk');
   saveRooms();
   renderAll();
   setStatus('이 캐릭터의 대화를 초기화했습니다.');
@@ -1250,7 +1150,6 @@ function setPanelVisible(show) {
     panelEl.classList.toggle('tua-collapsed', !!getSettings().collapsed);
     applyPanelPosition();
   }
-  updateProactiveUnreadUI();
   const settings = getSettings();
   settings.openOnStart = !!show;
   saveSettings();
@@ -1258,16 +1157,144 @@ function setPanelVisible(show) {
 
 function togglePanel() { ensurePanel(); setPanelVisible(!panelEl.classList.contains('tua-visible')); }
 
+
+function getRoomIntroDeclaration(modeKey) {
+  const charName = getCharName();
+  const userName = ctx().name1 || '{{user}}';
+  const map = {
+    butler: `나, ${charName}는 지금부터 이 콩고물 톡 방에서 ${userName}의 집사 역할에 충실히 임하며, ${userName}의 질문에 답하고, 일정과 할 일을 정리하고, 고민과 선택지를 함께 살피고, 필요한 일을 가능한 한 실용적으로 돕겠습니다.`,
+    pet: `나, ${charName}는 지금부터 이 콩고물 톡 방에서 ${userName}의 펫으로 지내며, ${userName}의 말에 반응하고, 가까이 머물며, 이 방 안에서는 펫으로서의 역할을 받아들이겠습니다.`,
+    coworker: `나, ${charName}는 지금부터 이 콩고물 톡 방에서 ${userName}와 같은 회사/팀의 직장 동료로 일하며, 업무 상황을 함께 보고, 모르는 일은 확인하거나 파악해서 도우며, ${userName}에게 필요한 실무적인 답변과 결과물을 제공하겠습니다.`,
+    rpAssistant: `나, ${charName}는 지금부터 이 콩고물 톡 방에서 ${userName}의 RP 어시 역할을 맡아, 진행 중인 장면을 멈춘 별도 대화로 보고, 상황 설명, 감정선 정리, OOC 문장 작성, 답변 방향 제안, 원하는 전개로 가기 위한 도움을 제공하겠습니다.`
+  };
+  return map[modeKey] || '';
+}
+
+function buildRoomIntroInstruction(modeKey) {
+  const declaration = getRoomIntroDeclaration(modeKey);
+  if (!declaration) return '';
+  return `This is the first assistant message in a newly created room.
+The room mode has just been assigned to {char}.
+{char} must begin by reading the following Korean declaration aloud in {char}'s own message. The declaration content must be included clearly, using the names naturally. {char} may stumble, complain, pause, repeat a word, or add small in-character friction while reading, but the declaration must still be recognizably read.
+
+DECLARATION TO READ:
+${declaration}
+
+After reading the declaration, {char} must react to being assigned this role in {char}'s own personality. The reaction may be pleased, annoyed, embarrassed, amused, offended, reluctant, dutiful, proud, suspicious, affectionate, or anything that fits {char}.
+The role is mandatory inside this room. {char} must not reject the role or end by refusing.
+End by asking what {user} needs in this mode, in {char}'s own voice.
+Write only {char}'s first text message. Do not output system notes, labels, speaker prefixes, or explanations.`;
+}
+
+async function generateRoomIntroReply(modeKey) {
+  const settings = getSettings();
+  const instruction = buildRoomIntroInstruction(modeKey);
+  if (!instruction) return '🐕';
+  const systemPrompt = await buildSystemPrompt('', modeKey, instruction);
+  const prompt = [{ role: 'user', content: '새 콩고물 톡 방을 시작해줘.' }];
+  return await useSelectedProfileIfNeeded(async () => {
+    if (typeof ctx().generateRaw === 'function') {
+      return await ctx().generateRaw({ systemPrompt, prompt, maxTokens: Math.min(settings.maxTokens || 1000, 900), max_tokens: Math.min(settings.maxTokens || 1000, 900) });
+    }
+    if (typeof ctx().generateQuietPrompt === 'function') {
+      const merged = `${systemPrompt}\n\nCURRENT ASSISTANT CONVERSATION:\n${prompt.map(m => `${m.role}: ${m.content}`).join('\n')}\n\nAnswer now.`;
+      return await ctx().generateQuietPrompt({ quietPrompt: merged, maxTokens: Math.min(settings.maxTokens || 1000, 900), max_tokens: Math.min(settings.maxTokens || 1000, 900) });
+    }
+    throw new Error('SillyTavern generation function not found.');
+  });
+}
+
+async function createRoomWithModeIntro(modeKey) {
+  const mode = migrateModeKey(modeKey);
+  closeModePicker();
+  closeRoomList();
+  closeSettingsPanel();
+  const room = createRoom(true, mode);
+  renderAll();
+  setPanelVisible(true);
+  $('#tua-input').trigger('focus');
+  if (mode === 'kongtalk') {
+    room.messages.push({ id: 'msg_intro_' + Date.now(), role: 'assistant', content: '🐕', at: Date.now() });
+    await saveRooms();
+    renderAll();
+    setStatus(`새 ${MODES[mode].label} 방을 시작했습니다.`);
+    return room;
+  }
+  const loadingId = 'msg_intro_loading_' + Date.now();
+  room.messages.push({ id: loadingId, role: 'assistant', content: '…', at: Date.now(), loading: true });
+  renderMessages();
+  setStatus(`${MODES[mode].label} 첫 톡을 생성하는 중입니다.`);
+  try {
+    const reply = sanitizeAssistantReply(await generateRoomIntroReply(mode));
+    const msg = room.messages.find(m => m.id === loadingId);
+    if (msg) { msg.content = reply; msg.loading = false; }
+    setStatus(`새 ${MODES[mode].label} 방을 시작했습니다.`);
+  } catch (e) {
+    const msg = room.messages.find(m => m.id === loadingId);
+    if (msg) { msg.content = `오류: ${e.message || e}`; msg.loading = false; msg.error = true; }
+    setStatus('첫 톡 생성에 실패했습니다. 다시 시도해 주세요.');
+    console.error('[Konggomul] room intro failed', e);
+  }
+  await saveRooms();
+  renderAll();
+  return room;
+}
+
+function getRecentKongtalkLines(limit = 10) {
+  const room = getActiveRoom();
+  return (room?.messages || [])
+    .filter(m => !m.loading && !m.error && String(m.content || '').trim())
+    .slice(-limit)
+    .map(m => `${m.role === 'user' ? '{{user}}' : getCharName()}: ${String(m.content || '').trim()}`);
+}
+
+async function generateKongtalkSummaryForMain() {
+  const lines = getRecentKongtalkLines(10);
+  if (!lines.length) throw new Error('요약할 콩고물 톡 메시지가 없습니다.');
+  const systemPrompt = `You summarize a separate messenger conversation so it can be inserted into the main RP as context.
+Write in Korean.
+Do not continue the RP scene.
+Do not copy every line. Summarize the recent messenger exchange in 3-7 concise sentences.
+The result must say that this happened through a separate text conversation between {{user}} and {char} outside the currently progressing scene.
+Start with: OOC: 진행 중인 RP 밖에서 {{user}}와 {char}는 콩고물 톡으로 다음 내용을 주고받았다:
+Include important emotional context, decisions, requests, promises, or relationship beats if present.
+Do not mention prompts, extensions, AI, models, or systems.`.replaceAll('{char}', getCharName());
+  const prompt = [{ role: 'user', content: lines.join('\n') }];
+  const settings = getSettings();
+  return await useSelectedProfileIfNeeded(async () => {
+    if (typeof ctx().generateRaw === 'function') {
+      return await ctx().generateRaw({ systemPrompt, prompt, maxTokens: Math.min(settings.maxTokens || 1000, 800), max_tokens: Math.min(settings.maxTokens || 1000, 800) });
+    }
+    if (typeof ctx().generateQuietPrompt === 'function') {
+      const merged = `${systemPrompt}\n\nMESSAGES TO SUMMARIZE:\n${lines.join('\n')}\n\nSummary now.`;
+      return await ctx().generateQuietPrompt({ quietPrompt: merged, maxTokens: Math.min(settings.maxTokens || 1000, 800), max_tokens: Math.min(settings.maxTokens || 1000, 800) });
+    }
+    throw new Error('SillyTavern generation function not found.');
+  });
+}
+
+async function summarizeRecentKongtalkToMain() {
+  if (!confirm('최근 콩고물 톡 10건을 요약해 RP에 삽입할까요?')) return;
+  try {
+    setStatus('최근 콩고물 톡 10건을 요약하는 중입니다.');
+    const summary = sanitizeAssistantReply(await generateKongtalkSummaryForMain());
+    sendToMainChat(summary);
+  } catch (e) {
+    console.error('[Konggomul] RP summary failed', e);
+    alert(`RP 반영 요약에 실패했습니다: ${e.message || e}`);
+    setStatus('RP 반영 요약에 실패했습니다.');
+  }
+}
+
 async function sendCurrentInput() {
   const settings = getSettings();
-  if (!settings.enabled) { alert('🐶콩고물 토오크가 비활성화되어 있습니다. 확장 설정에서 활성화해 주세요.'); return; }
+  if (!settings.enabled) { alert('🐕콩고물 톡이 비활성화되어 있습니다. 확장 설정에서 활성화해 주세요.'); return; }
   const input = $('#tua-input');
   const text = String(input.val() || '').trim();
   if (!text) return;
   input.val('');
   autoGrowInput();
   if (!activeRoomId || !getActiveRoom()) createRoom(false);
-  clearProactiveUnread(false);
   appendMessage('user', text);
   setPanelVisible(true);
   const loadingId = 'msg_loading_' + Date.now();
@@ -1293,12 +1320,12 @@ function renderSettings() {
   <div id="tua-settings" class="tua-settings-mini">
     <div class="inline-drawer">
       <div class="inline-drawer-toggle inline-drawer-header">
-        <b>🐶콩고물 토오크</b>
+        <b>🐕콩고물 톡</b>
         <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
       </div>
       <div class="inline-drawer-content">
         <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화</label>
-        <div class="tua-mini-note">체크하면 🐶콩고물 토오크가 활성화됩니다.</div>
+        <div class="tua-mini-note">체크하면 🐕콩고물 톡이 활성화됩니다.</div>
       </div>
     </div>
   </div>`;
@@ -1319,7 +1346,6 @@ function readGlobalSettingsUI() {
 
 function hydratePanelSettingsUI() {
   const s = getSettings();
-  $('#tua-panel-mode').val(getRoomMode());
   $('#tua-panel-profile-mode').val(s.profileMode);
   renderProfileOptions();
   $('#tua-panel-profile').val(s.selectedProfile);
@@ -1328,8 +1354,6 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-font').val(s.fontSize);
   $('#tua-panel-voice-note').val(getVoiceNote());
   $('#tua-panel-coworker-note').val(s.coworkerWorkNote || '');
-  $('#tua-panel-proactive-enabled').prop('checked', !!s.proactiveEnabled);
-  $('#tua-panel-proactive-frequency').val(s.proactiveFrequency || 'normal');
   if (!isPanelSizeInputFocused()) {
     $('#tua-panel-width').val(s.panelWidth);
     $('#tua-panel-height').val(s.panelHeight);
@@ -1352,8 +1376,6 @@ function renderProfileOptions() {
 
 function readPanelSettingsUI() {
   const s = getSettings();
-  const selectedMode = $('#tua-panel-mode').val();
-  setRoomMode(selectedMode);
   s.profileMode = $('#tua-panel-profile-mode').val();
   s.selectedProfile = $('#tua-panel-profile').val() || '';
   const maxTokensRaw = Number($('#tua-panel-tokens').val());
@@ -1364,8 +1386,6 @@ function readPanelSettingsUI() {
   s.fontSize = Number.isFinite(fontRaw) ? Math.max(10, Math.min(24, Math.floor(fontRaw))) : DEFAULT_SETTINGS.fontSize;
   setVoiceNote($('#tua-panel-voice-note').val() || '');
   s.coworkerWorkNote = $('#tua-panel-coworker-note').val() || '';
-  s.proactiveEnabled = $('#tua-panel-proactive-enabled').prop('checked');
-  s.proactiveFrequency = PROACTIVE_THRESHOLDS[$('#tua-panel-proactive-frequency').val()] ? $('#tua-panel-proactive-frequency').val() : 'normal';
   saveSettings();
   applyVisualSettings();
   renderAll();
@@ -1469,13 +1489,13 @@ function renderMessages() {
   box.empty();
   hideContextMenu();
   if (!room.messages.length) {
-    box.append(`<div class="tua-empty">아직 대화가 없습니다. 모드를 선택한 뒤 아래 입력창에서 캐릭터와의 새로운 대화를 시작해보세요.</div>`);
+    box.append(`<div class="tua-empty">아직 대화가 없습니다. ＋ 버튼으로 모드를 선택해 새 톡방을 시작해보세요.</div>`);
   }
   for (const m of room.messages) {
     const roleClass = m.role === 'user' ? 'user' : 'assistant';
     const name = m.role === 'user' ? '나' : getCharName();
     const html = `
-      <div class="tua-msg tua-${roleClass} ${m.error ? 'tua-error' : ''} ${m.loading ? 'tua-loading' : ''}" data-id="${escapeHtml(m.id)}" tabindex="0" title="길게 누르면 복사/삭제/OOC 보내기">
+      <div class="tua-msg tua-${roleClass} ${m.error ? 'tua-error' : ''} ${m.loading ? 'tua-loading' : ''}" data-id="${escapeHtml(m.id)}" tabindex="0" title="길게 누르면 복사/삭제/RP에 반영">
         <div class="tua-msg-name">${escapeHtml(name)}</div>
         <div class="tua-bubble">${normalizeNewlines(m.content)}</div>
       </div>`;
@@ -1524,7 +1544,7 @@ function ensureContextMenu() {
   contextMenuEl.id = 'tua-context-menu';
   contextMenuEl.innerHTML = `
     <button data-action="copy">복사</button>
-    <button data-action="send-ooc">본RP 삽입</button>
+    <button data-action="send-ooc">RP에 반영</button>
     <button data-action="delete" class="danger">삭제</button>`;
   document.body.appendChild(contextMenuEl);
   contextMenuEl.addEventListener('click', async e => {
@@ -1536,7 +1556,7 @@ function ensureContextMenu() {
     const action = btn.dataset.action;
     if (action === 'copy') await copyTextToClipboard(msg.content);
     if (action === 'delete') deleteMessage(id);
-    if (action === 'send-ooc') sendToMainChat(`OOC: ${msg.content}`);
+    if (action === 'send-ooc') await summarizeRecentKongtalkToMain();
     hideContextMenu();
   });
   document.addEventListener('click', e => {
@@ -1582,7 +1602,7 @@ function sendToMainChat(text) {
   if (!textarea) { alert('메인 채팅 입력창을 찾지 못했습니다. 복사 기능을 사용해주세요.'); return; }
   textarea.value = text;
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
-  setStatus('본 RP 입력창에 삽입했습니다.');
+  setStatus('RP 입력창에 반영 내용을 삽입했습니다.');
 }
 
 function cleanupMisplacedLauncher() {
@@ -1619,7 +1639,7 @@ function ensureExtensionMenuEntry() {
     entry.className = 'tua-extension-menu-entry';
     entry.setAttribute('role', 'button');
     entry.setAttribute('tabindex', '0');
-    entry.innerHTML = '<span class="tua-extension-menu-icon">🐶</span><span class="tua-extension-menu-text">콩고물 토오크</span>';
+    entry.innerHTML = '<span class="tua-extension-menu-icon">🐕</span><span class="tua-extension-menu-text">콩고물 톡</span>';
     entry.addEventListener('click', () => {
       const st = getSettings();
       if (!st.enabled) {
@@ -1674,7 +1694,7 @@ async function init() {
   await loadRooms();
   if (getSettings().enabled && getSettings().openOnStart) setPanelVisible(true);
   const context = ctx();
-  context.eventSource?.on?.(context.event_types?.CHAT_CHANGED, async () => { await loadRooms(); renderAll(); await handleMainChatChangedForProactive(); });
+  context.eventSource?.on?.(context.event_types?.CHAT_CHANGED, async () => { await loadRooms(); renderAll(); });
   context.eventSource?.on?.(context.event_types?.CHARACTER_EDITED, renderAll);
 }
 

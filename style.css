@@ -785,7 +785,7 @@ body.tua-panel-dragging-body { user-select: none !important; }
   min-height: 34px !important;
 }
 
-/* v3.9.8: stable resize handle + proactive unread state */
+/* v4.0: stable resize handle */
 #tua-panel .tua-window {
   position: relative;
 }
@@ -834,7 +834,49 @@ body.tua-panel-resizing-body {
 .tua-checkbox-row input {
   width: auto !important;
 }
-#tua-panel.tua-proactive-unread.tua-collapsed #tua-collapsed-button {
-  transform: rotate(180deg);
-  background: #f2d89f !important;
+
+
+/* v4.0 mode picker */
+.tua-mode-picker {
+  display: none;
+  padding: 10px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(159, 122, 54, .22);
+  background: rgba(255, 248, 232, .94);
+}
+.tua-mode-picker.open {
+  display: flex;
+  flex-direction: column;
+}
+.tua-mode-picker-title {
+  font-weight: 900;
+  color: #2a1c0d;
+  font-size: calc(var(--tua-font-size) - 1px);
+}
+.tua-mode-picker-buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.tua-mode-picker-buttons button {
+  width: 100%;
+  border: 1px solid rgba(159, 122, 54, .24);
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: rgba(255, 250, 240, .82);
+  color: var(--tua-text);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(255,255,255,.75) inset;
+}
+.tua-mode-picker-buttons button:hover {
+  background: #fff4d7;
+}
+#tua-collapsed-button {
+  background: rgba(255, 247, 221, .62) !important;
+  color: rgba(42, 28, 13, 1) !important;
+  backdrop-filter: blur(4px);
+}
+#tua-collapsed-button:hover {
+  background: rgba(247, 223, 170, .72) !important;
 }
