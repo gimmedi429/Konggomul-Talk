@@ -1,5 +1,5 @@
 /*
- * 🐕콩고물 톡 v4.0.1
+ * 🐕콩고물 톡 v4.0.2
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -709,7 +709,7 @@ function ensurePanel() {
     <div class="tua-window">
       <div class="tua-header">
         <div class="tua-titlebox">
-          <div class="tua-title">콩톡</div>
+          <div class="tua-title">🐕 콩톡</div>
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
@@ -720,7 +720,6 @@ function ensurePanel() {
       </div>
       <div class="tua-roombar">
         <button type="button" id="tua-active-room-title" class="tua-active-room-title" title="대화방 목록 열기"></button>
-        <button type="button" id="tua-rename-room">이름 변경</button>
         <button type="button" id="tua-pin-room" title="대화방 고정/해제">📌</button>
         <button type="button" id="tua-new-room" title="새 대화방">＋</button>
         <button type="button" id="tua-delete-room" title="대화방 삭제">🗑️</button>
@@ -771,11 +770,11 @@ function ensurePanel() {
       <div id="tua-messages" class="tua-messages"></div>
       <div class="tua-input-row">
         <textarea id="tua-input" placeholder="메시지를 입력하세요…"></textarea>
-        <button type="button" id="tua-send" title="전송" aria-label="전송">🐾</button>
+        <button type="button" id="tua-send" title="전송" aria-label="전송">🐶</button>
       </div>
       <div id="tua-resize-handle" title="창 크기 조절" aria-hidden="true"></div>
     </div>
-    <button type="button" id="tua-collapsed-button" title="콩고물 톡 펼치기">🐕</button>`;
+    <button type="button" id="tua-collapsed-button" title="콩고물 톡 펼치기"><span class="tua-collapsed-emoji">🐕</span></button>`;
   document.body.appendChild(panelEl);
 
   $('#tua-close').on('click', () => setPanelVisible(false));
@@ -784,9 +783,8 @@ function ensurePanel() {
   $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeRoomList(); closeModePicker(); $('#tua-in-panel-settings').toggleClass('open'); });
   $('#tua-active-room-title').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); closeModePicker(); toggleRoomList(); });
   $('#tua-new-room').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); closeRoomList(); toggleModePicker(); });
-  $('#tua-delete-room').on('click', () => { closeSettingsPanel(); if (confirm('이 🐕콩고물 톡 대화방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
+  $('#tua-delete-room').on('click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); if (confirm('채팅방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
   $('#tua-pin-room').on('click', () => { closeSettingsPanel(); toggleActiveRoomPinned(); });
-  $('#tua-rename-room').on('click', () => { closeSettingsPanel(); renameActiveRoom(); });
   $('#tua-send').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); });
   $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); } });
@@ -1134,13 +1132,20 @@ function resetAllRoomsForCurrentCharacter() {
   setStatus('이 캐릭터의 대화를 초기화했습니다.');
 }
 
-function renameActiveRoom() {
-  const room = getActiveRoom();
-  const next = prompt('대화방 이름', room.title || '');
-  if (!next) return;
+function renameRoomById(id) {
+  const room = roomState.rooms.find(r => r.id === id);
+  if (!room) return;
+  if (!confirm('채팅방 이름을 변경하시겠습니까?')) return;
+  const next = prompt('새 채팅방 이름', room.title || '');
+  if (!next || !next.trim()) return;
   room.title = next.trim();
   saveRooms();
   renderAll();
+  setStatus('채팅방 이름을 변경했습니다.');
+}
+
+function renameActiveRoom() {
+  renameRoomById(activeRoomId);
 }
 
 function setPanelVisible(show) {
@@ -1474,12 +1479,38 @@ function renderRoomList() {
     const title = `${room.pinned ? '📌 ' : ''}${room.title || defaultRoomTitle(room.createdAt)}`;
     list.append(`<button class="tua-room-item ${active} ${pinned}" data-id="${escapeHtml(room.id)}"><span><b>${escapeHtml(title)}</b><small>${escapeHtml(roomMode)} · ${escapeHtml(String(last).slice(0, 34))}</small></span><em>${count}</em></button>`);
   }
-  list.find('.tua-room-item').on('click', function () {
-    closeSettingsPanel();
-    activeRoomId = $(this).data('id');
-    $('#tua-room-list').removeClass('open');
-    renderAll();
-  });
+  let roomPressTriggered = false;
+  list.find('.tua-room-item').off('.tuaRoom')
+    .on('click.tuaRoom', function (e) {
+      if (roomPressTriggered) {
+        e.preventDefault();
+        roomPressTriggered = false;
+        return;
+      }
+      closeSettingsPanel();
+      activeRoomId = $(this).data('id');
+      $('#tua-room-list').removeClass('open');
+      renderAll();
+    })
+    .on('contextmenu.tuaRoom', function (e) {
+      e.preventDefault();
+      roomPressTriggered = true;
+      renameRoomById($(this).data('id'));
+      setTimeout(() => { roomPressTriggered = false; }, 80);
+    })
+    .on('pointerdown.tuaRoom', function (e) {
+      if (e.button !== undefined && e.button !== 0) return;
+      const id = $(this).data('id');
+      clearTimeout(longPressTimer);
+      longPressTimer = setTimeout(() => {
+        roomPressTriggered = true;
+        renameRoomById(id);
+      }, 620);
+    })
+    .on('pointerup.tuaRoom pointercancel.tuaRoom pointerleave.tuaRoom', function () {
+      clearTimeout(longPressTimer);
+      if (roomPressTriggered) setTimeout(() => { roomPressTriggered = false; }, 120);
+    });
 }
 
 function renderMessages() {

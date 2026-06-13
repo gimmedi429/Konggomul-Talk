@@ -741,10 +741,6 @@ body.tua-panel-dragging-body { user-select: none !important; }
   line-height: 1 !important;
   border-radius: 8px !important;
 }
-#tua-rename-room {
-  white-space: nowrap;
-}
-
 .tua-room-item,
 .tua-bubble,
 #tua-input,
@@ -873,10 +869,17 @@ body.tua-panel-resizing-body {
   background: #fff4d7;
 }
 #tua-collapsed-button {
-  background: rgba(255, 247, 221, .62) !important;
+  background: rgba(255, 247, 221, .34) !important;
   color: rgba(42, 28, 13, 1) !important;
-  backdrop-filter: blur(4px);
+  border-color: rgba(110, 79, 31, .20) !important;
+  box-shadow: 0 8px 22px rgba(92, 66, 28, .16), 0 1px 0 rgba(255,255,255,.42) inset !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 #tua-collapsed-button:hover {
-  background: rgba(247, 223, 170, .72) !important;
+  background: rgba(247, 223, 170, .45) !important;
+}
+#tua-collapsed-button .tua-collapsed-emoji {
+  opacity: 1 !important;
+  filter: none !important;
 }
