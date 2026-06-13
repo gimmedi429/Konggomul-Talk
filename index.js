@@ -1,5 +1,5 @@
 /*
- * 🐕콩고물 톡 v4.0.11
+ * 🐕콩고물 톡 v4.0.12
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -1101,7 +1101,7 @@ function exportCurrentCharacterRooms() {
   try {
     const payload = {
       app: 'Konggomul Talk',
-      version: '4.0.7',
+      version: '4.0.12',
       exportedAt: new Date().toISOString(),
       characterKey: getCharKey(),
       characterName: getCharName(),

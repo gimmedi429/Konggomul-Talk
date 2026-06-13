@@ -1526,3 +1526,99 @@ body.tua-panel-resizing-body {
   --tua-collapsed-bg: rgba(230, 184, 167, .16);
   --tua-collapsed-bg-hover: rgba(230, 184, 167, .28);
 }
+
+
+/* v4.0.12 palette rescue: true milk-tea cream + separated milk-chocolate/strawberry placement */
+#tua-panel[data-tua-theme="konggomul"] {
+  /* Milk tea theme: cream base, tea beige surfaces, caramel accents. No peach/skin tone. */
+  --tua-bg: #fffaf1;
+  --tua-bg-2: #f5ecdf;
+  --tua-card: #fffdf8;
+  --tua-line: #d8c3a4;
+  --tua-text: #2f2418;
+  --tua-muted: #806346;
+  --tua-bubble-text: #2b2117;
+  --tua-user-bubble: #ead7bc;
+  --tua-char-bubble: #fff8ed;
+  --tua-accent: #b98755;
+  --tua-accent-dark: #765230;
+  --tua-shadow: rgba(93, 65, 36, .14);
+  --tua-header-a: #fff3df;
+  --tua-header-b: #ead1ad;
+  --tua-header-c: #d6aa72;
+  --tua-panel-bg-end: #f7eddf;
+  --tua-roombar-bg: rgba(255, 248, 239, .88);
+  --tua-room-list-bg: rgba(245, 232, 213, .82);
+  --tua-room-item-bg: rgba(255, 253, 248, .94);
+  --tua-room-active-bg: #ead3ae;
+  --tua-settings-bg: rgba(255, 251, 244, .99);
+  --tua-inputbar-bg: rgba(253, 244, 231, .94);
+  --tua-input-bg: #fffdf8;
+  --tua-button-bg: rgba(255, 251, 244, .92);
+  --tua-button-hover: #efe0c9;
+  --tua-send-bg: #d9b276;
+  --tua-danger-bg: rgba(255, 251, 244, .76);
+  --tua-danger-color: #6f4f31;
+  --tua-collapsed-bg: rgba(234, 211, 174, .15);
+  --tua-collapsed-bg-hover: rgba(234, 211, 174, .26);
+}
+
+#tua-panel[data-tua-theme="chocoStrawberry"] {
+  /* Milk chocolate strawberry: pink cream areas + clearly separated chocolate accents. */
+  --tua-bg: #fff4f6;
+  --tua-bg-2: #fbe2e7;
+  --tua-card: #fff9fa;
+  --tua-line: #d7a391;
+  --tua-text: #39251b;
+  --tua-muted: #835744;
+  --tua-bubble-text: #321f17;
+  --tua-user-bubble: #f3c6cc;
+  --tua-char-bubble: #e6c4a5;
+  --tua-accent: #9b6040;
+  --tua-accent-dark: #653b27;
+  --tua-shadow: rgba(91, 48, 31, .16);
+  --tua-header-a: #8f5639;
+  --tua-header-b: #bd815a;
+  --tua-header-c: #f2bdc5;
+  --tua-panel-bg-end: #fde7eb;
+  --tua-roombar-bg: rgba(255, 237, 241, .92);
+  --tua-room-list-bg: rgba(251, 225, 231, .88);
+  --tua-room-item-bg: rgba(255, 249, 250, .95);
+  --tua-room-active-bg: #d6a17f;
+  --tua-settings-bg: rgba(255, 247, 249, .99);
+  --tua-inputbar-bg: rgba(255, 232, 237, .94);
+  --tua-input-bg: #fffafa;
+  --tua-button-bg: rgba(255, 246, 248, .92);
+  --tua-button-hover: #f0c8cf;
+  --tua-send-bg: #9b6040;
+  --tua-danger-bg: rgba(255, 246, 248, .78);
+  --tua-danger-color: #70432e;
+  --tua-collapsed-bg: rgba(246, 202, 208, .15);
+  --tua-collapsed-bg-hover: rgba(246, 202, 208, .26);
+}
+
+/* v4.0.12: make the two adjusted themes keep their identity in areas that used hard-coded translucency. */
+#tua-panel[data-tua-theme="konggomul"] .tua-header {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255,255,255,.76) 0 11%, transparent 12%),
+    linear-gradient(135deg, var(--tua-header-a), var(--tua-header-b) 52%, var(--tua-header-c)) !important;
+}
+#tua-panel[data-tua-theme="chocoStrawberry"] .tua-header {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255,255,255,.42) 0 11%, transparent 12%),
+    linear-gradient(135deg, var(--tua-header-a) 0%, var(--tua-header-b) 47%, var(--tua-header-c) 100%) !important;
+  color: #fff7f2 !important;
+}
+#tua-panel[data-tua-theme="chocoStrawberry"] .tua-title,
+#tua-panel[data-tua-theme="chocoStrawberry"] .tua-subtitle {
+  color: #fff7f2 !important;
+  text-shadow: 0 1px 1px rgba(65, 35, 22, .18);
+}
+#tua-panel[data-tua-theme="chocoStrawberry"] .tua-header-actions button {
+  background: rgba(255, 246, 248, .86) !important;
+  color: #53301f !important;
+  border-color: rgba(86, 48, 30, .22) !important;
+}
+#tua-panel[data-tua-theme="chocoStrawberry"] .tua-header-actions button:hover {
+  background: #ffe9ee !important;
+}
