@@ -1787,3 +1787,70 @@ body.tua-panel-resizing-body {
 #tua-panel .tua-theme-buttons button.active { background: var(--tua-button-hover) !important; }
 #tua-panel #tua-send { background: var(--tua-send-bg) !important; }
 #tua-panel .tua-bubble { color: var(--tua-bubble-text) !important; }
+
+
+/* v4.0.15 palette tuning: konggomul less cocoa, melon soda more melon */
+#tua-panel[data-tua-theme="konggomul"] {
+  --tua-bg: #fdfaf6;
+  --tua-bg-2: #f7f1e8;
+  --tua-card: #fffdf9;
+  --tua-line: #ddd1c3;
+  --tua-text: #3c3128;
+  --tua-muted: #8c7969;
+  --tua-bubble-text: #30261e;
+  --tua-user-bubble: #eadccf;
+  --tua-char-bubble: #fffbf7;
+  --tua-accent: #c7a887;
+  --tua-accent-dark: #977759;
+  --tua-shadow: rgba(118, 93, 68, .12);
+  --tua-header-a: #e6d5c1;
+  --tua-header-b: #e6d5c1;
+  --tua-header-c: #e6d5c1;
+  --tua-panel-bg-end: #fdfaf6;
+  --tua-roombar-bg: #f8f1e8;
+  --tua-room-list-bg: #f4ece3;
+  --tua-room-item-bg: #fffbf7;
+  --tua-room-active-bg: #efdfd1;
+  --tua-settings-bg: #fdf9f4;
+  --tua-inputbar-bg: #f9f3eb;
+  --tua-input-bg: #fffdfa;
+  --tua-button-bg: #fffbf7;
+  --tua-button-hover: #f2e7dc;
+  --tua-send-bg: #dec2a7;
+  --tua-danger-bg: #fffbf7;
+  --tua-danger-color: #705745;
+  --tua-collapsed-bg: rgba(230, 213, 193, .16);
+  --tua-collapsed-bg-hover: rgba(230, 213, 193, .24);
+}
+#tua-panel[data-tua-theme="melonSoda"] {
+  --tua-bg: #f5fbf4;
+  --tua-bg-2: #edf7ee;
+  --tua-card: #fcfffb;
+  --tua-line: #c6dbca;
+  --tua-text: #2c3b31;
+  --tua-muted: #71877a;
+  --tua-bubble-text: #223028;
+  --tua-user-bubble: #d7ecd4;
+  --tua-char-bubble: #fbfff8;
+  --tua-accent: #9bc9a3;
+  --tua-accent-dark: #6f9d79;
+  --tua-shadow: rgba(88, 120, 94, .12);
+  --tua-header-a: #d6ecd4;
+  --tua-header-b: #d6ecd4;
+  --tua-header-c: #d6ecd4;
+  --tua-panel-bg-end: #f5fbf4;
+  --tua-roombar-bg: #eef7ee;
+  --tua-room-list-bg: #e5f1e5;
+  --tua-room-item-bg: #fbfefb;
+  --tua-room-active-bg: #def0da;
+  --tua-settings-bg: #f7fbf6;
+  --tua-inputbar-bg: #eef7ee;
+  --tua-input-bg: #fcfffc;
+  --tua-button-bg: #fbfefb;
+  --tua-button-hover: #e3f0e0;
+  --tua-send-bg: #b9dcb8;
+  --tua-danger-bg: #fbfefb;
+  --tua-danger-color: #5f7f66;
+  --tua-collapsed-bg: rgba(185, 220, 184, .16);
+  --tua-collapsed-bg-hover: rgba(185, 220, 184, .24);
+}
