@@ -1527,7 +1527,7 @@ function applyThemeUI() {
     $('#tua-title-icon').text(theme.titleIcon);
     $('#tua-settings-icon').text(theme.titleIcon);
     $('#tua-send').text(theme.sendIcon).attr('title', '전송').attr('aria-label', '전송');
-    $('#tua-collapsed-button .tua-collapsed-emoji').text('🐕');
+    $('#tua-collapsed-button .tua-collapsed-emoji').text(theme.titleIcon);
   }
   const entryIcon = document.querySelector('#tua-extension-menu-entry .tua-extension-menu-icon');
   if (entryIcon) entryIcon.textContent = theme.menuIcon;

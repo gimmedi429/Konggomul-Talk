@@ -1889,3 +1889,13 @@ body.tua-panel-resizing-body {
   --tua-collapsed-bg: rgba(197, 221, 168, .16);
   --tua-collapsed-bg-hover: rgba(197, 221, 168, .24);
 }
+
+
+/* final cleanup: remove semicircle/radial decoration from top bar */
+#tua-panel[data-tua-theme="konggomul"] .tua-header,
+#tua-panel[data-tua-theme="chocoStrawberry"] .tua-header,
+#tua-panel[data-tua-theme="melonSoda"] .tua-header,
+#tua-panel[data-tua-theme="blackWhite"] .tua-header {
+  background: var(--tua-header-a) !important;
+  background-image: none !important;
+}
