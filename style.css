@@ -1624,113 +1624,159 @@ body.tua-panel-resizing-body {
 }
 
 
-/* v4.0.13 final palette override: no gradients */
+/* v4.0.14 muted palette system: no gradients, all four themes softened */
 #tua-panel[data-tua-theme="konggomul"] {
-  --tua-bg: #fcf8f3;
-  --tua-bg-2: #f4ece3;
+  --tua-bg: #fcf9f4;
+  --tua-bg-2: #f6efe6;
   --tua-card: #fffdfa;
-  --tua-line: #dccdbd;
-  --tua-text: #3d2f26;
-  --tua-muted: #8c7767;
-  --tua-bubble-text: #2f241d;
-  --tua-user-bubble: #e5d2bd;
+  --tua-line: #ddd0c1;
+  --tua-text: #3b3028;
+  --tua-muted: #8a7666;
+  --tua-bubble-text: #2e241d;
+  --tua-user-bubble: #e8d7c6;
   --tua-char-bubble: #fffaf5;
-  --tua-accent: #b89473;
-  --tua-accent-dark: #8c6849;
-  --tua-shadow: rgba(113, 86, 60, .14);
-  --tua-header-a: #dec5aa;
-  --tua-header-b: #dec5aa;
-  --tua-header-c: #dec5aa;
-  --tua-panel-bg-end: #fcf8f3;
-  --tua-roombar-bg: rgba(249, 241, 232, .96);
-  --tua-room-list-bg: rgba(244, 235, 225, .96);
-  --tua-room-item-bg: rgba(255, 251, 246, .98);
-  --tua-room-active-bg: #ead9c8;
-  --tua-settings-bg: rgba(253, 249, 244, .98);
-  --tua-inputbar-bg: rgba(249, 242, 233, .98);
+  --tua-accent: #bb9b7d;
+  --tua-accent-dark: #8f7055;
+  --tua-shadow: rgba(113, 90, 66, .13);
+  --tua-header-a: #dfccb6;
+  --tua-header-b: #dfccb6;
+  --tua-header-c: #dfccb6;
+  --tua-panel-bg-end: #fcf9f4;
+  --tua-roombar-bg: #f7efe6;
+  --tua-room-list-bg: #f3eadf;
+  --tua-room-item-bg: #fffaf5;
+  --tua-room-active-bg: #ebdccd;
+  --tua-settings-bg: #fdf8f2;
+  --tua-inputbar-bg: #f8f1e8;
   --tua-input-bg: #fffdfa;
-  --tua-button-bg: rgba(255, 251, 246, .96);
-  --tua-button-hover: #f2e4d6;
-  --tua-send-bg: #d8b89b;
-  --tua-danger-bg: rgba(255, 251, 246, .92);
-  --tua-danger-color: #6a503d;
-  --tua-collapsed-bg: rgba(222, 197, 170, .16);
-  --tua-collapsed-bg-hover: rgba(222, 197, 170, .24);
+  --tua-button-bg: #fffaf5;
+  --tua-button-hover: #f1e5d9;
+  --tua-send-bg: #d7b89a;
+  --tua-danger-bg: #fffaf5;
+  --tua-danger-color: #6c5441;
+  --tua-collapsed-bg: rgba(223, 204, 182, .16);
+  --tua-collapsed-bg-hover: rgba(223, 204, 182, .24);
 }
 
 #tua-panel[data-tua-theme="chocoStrawberry"] {
-  --tua-bg: #fff6f7;
-  --tua-bg-2: #fdecef;
-  --tua-card: #fffafb;
-  --tua-line: #ddb9bb;
-  --tua-text: #402d27;
-  --tua-muted: #8b6d66;
-  --tua-bubble-text: #34251f;
-  --tua-user-bubble: #f5c6d2;
-  --tua-char-bubble: #ead7ca;
-  --tua-accent: #ab7c63;
-  --tua-accent-dark: #7c5845;
-  --tua-shadow: rgba(112, 80, 68, .15);
-  --tua-header-a: #b78469;
-  --tua-header-b: #b78469;
-  --tua-header-c: #b78469;
-  --tua-panel-bg-end: #fff6f7;
-  --tua-roombar-bg: rgba(251, 229, 234, .98);
-  --tua-room-list-bg: rgba(248, 219, 225, .98);
-  --tua-room-item-bg: rgba(255, 247, 248, .98);
-  --tua-room-active-bg: #e9c0b0;
-  --tua-settings-bg: rgba(255, 246, 247, .98);
-  --tua-inputbar-bg: rgba(252, 233, 237, .98);
-  --tua-input-bg: #fffafb;
-  --tua-button-bg: rgba(255, 247, 248, .96);
-  --tua-button-hover: #f1d0c4;
-  --tua-send-bg: #c79276;
-  --tua-danger-bg: rgba(255, 247, 248, .92);
-  --tua-danger-color: #6f5142;
-  --tua-collapsed-bg: rgba(199, 146, 118, .16);
-  --tua-collapsed-bg-hover: rgba(199, 146, 118, .24);
+  --tua-bg: #fff6f8;
+  --tua-bg-2: #fdeef2;
+  --tua-card: #fffafc;
+  --tua-line: #e0bcc2;
+  --tua-text: #3e2d28;
+  --tua-muted: #8d6f68;
+  --tua-bubble-text: #352620;
+  --tua-user-bubble: #f4c8d4;
+  --tua-char-bubble: #eadbce;
+  --tua-accent: #b0836b;
+  --tua-accent-dark: #7f5d4a;
+  --tua-shadow: rgba(118, 88, 74, .14);
+  --tua-header-a: #c59a83;
+  --tua-header-b: #c59a83;
+  --tua-header-c: #c59a83;
+  --tua-panel-bg-end: #fff6f8;
+  --tua-roombar-bg: #fae9ee;
+  --tua-room-list-bg: #f8dde4;
+  --tua-room-item-bg: #fff8fa;
+  --tua-room-active-bg: #e8c4b7;
+  --tua-settings-bg: #fff5f8;
+  --tua-inputbar-bg: #fbeef1;
+  --tua-input-bg: #fffafc;
+  --tua-button-bg: #fff8fa;
+  --tua-button-hover: #f2d8d0;
+  --tua-send-bg: #c99980;
+  --tua-danger-bg: #fff8fa;
+  --tua-danger-color: #755649;
+  --tua-collapsed-bg: rgba(201, 153, 128, .16);
+  --tua-collapsed-bg-hover: rgba(201, 153, 128, .24);
 }
 
-/* remove all theme gradients and use clear color blocks */
-#tua-panel .tua-window {
-  background: var(--tua-bg) !important;
+#tua-panel[data-tua-theme="melonSoda"] {
+  --tua-bg: #f4fbf5;
+  --tua-bg-2: #eaf5ea;
+  --tua-card: #fcfffc;
+  --tua-line: #c6d8c8;
+  --tua-text: #2c3a2f;
+  --tua-muted: #728678;
+  --tua-bubble-text: #223026;
+  --tua-user-bubble: #d9ead7;
+  --tua-char-bubble: #f8fcf5;
+  --tua-accent: #96b39a;
+  --tua-accent-dark: #6d8b73;
+  --tua-shadow: rgba(92, 116, 96, .12);
+  --tua-header-a: #cfe2cf;
+  --tua-header-b: #cfe2cf;
+  --tua-header-c: #cfe2cf;
+  --tua-panel-bg-end: #f4fbf5;
+  --tua-roombar-bg: #eef6ee;
+  --tua-room-list-bg: #e6f0e6;
+  --tua-room-item-bg: #fbfefb;
+  --tua-room-active-bg: #dfeadc;
+  --tua-settings-bg: #f7fbf6;
+  --tua-inputbar-bg: #eef6ee;
+  --tua-input-bg: #fcfffc;
+  --tua-button-bg: #fbfefb;
+  --tua-button-hover: #e4efe3;
+  --tua-send-bg: #b8d1bb;
+  --tua-danger-bg: #fbfefb;
+  --tua-danger-color: #5f7a64;
+  --tua-collapsed-bg: rgba(184, 209, 187, .16);
+  --tua-collapsed-bg-hover: rgba(184, 209, 187, .24);
 }
+
+#tua-panel[data-tua-theme="blackWhite"] {
+  --tua-bg: #f8f8f8;
+  --tua-bg-2: #efefef;
+  --tua-card: #ffffff;
+  --tua-line: #d4d4d4;
+  --tua-text: #202020;
+  --tua-muted: #7a7a7a;
+  --tua-bubble-text: #191919;
+  --tua-user-bubble: #e8e8e8;
+  --tua-char-bubble: #ffffff;
+  --tua-accent: #9a9a9a;
+  --tua-accent-dark: #666666;
+  --tua-shadow: rgba(60, 60, 60, .10);
+  --tua-header-a: #e2e2e2;
+  --tua-header-b: #e2e2e2;
+  --tua-header-c: #e2e2e2;
+  --tua-panel-bg-end: #f8f8f8;
+  --tua-roombar-bg: #f3f3f3;
+  --tua-room-list-bg: #ececec;
+  --tua-room-item-bg: #ffffff;
+  --tua-room-active-bg: #e5e5e5;
+  --tua-settings-bg: #fafafa;
+  --tua-inputbar-bg: #f4f4f4;
+  --tua-input-bg: #ffffff;
+  --tua-button-bg: #ffffff;
+  --tua-button-hover: #efefef;
+  --tua-send-bg: #d9d9d9;
+  --tua-danger-bg: #ffffff;
+  --tua-danger-color: #555555;
+  --tua-collapsed-bg: rgba(226, 226, 226, .16);
+  --tua-collapsed-bg-hover: rgba(226, 226, 226, .24);
+}
+
+/* all theme surfaces use flat colors only */
+#tua-panel .tua-window { background: var(--tua-bg) !important; }
 #tua-panel .tua-header {
   background: var(--tua-header-a) !important;
 }
-#tua-panel .tua-roombar {
-  background: var(--tua-roombar-bg) !important;
-}
-#tua-panel .tua-room-list {
-  background: var(--tua-room-list-bg) !important;
-}
-#tua-panel .tua-room-item {
-  background: var(--tua-room-item-bg) !important;
-}
-#tua-panel .tua-room-item.active {
-  background: var(--tua-room-active-bg) !important;
-}
-#tua-panel .tua-in-panel-settings {
-  background: var(--tua-settings-bg) !important;
-}
-#tua-panel .tua-messages {
-  background: var(--tua-bg) !important;
-}
-#tua-panel .tua-input-row {
-  background: var(--tua-inputbar-bg) !important;
-}
-#tua-panel #tua-input {
-  background: var(--tua-input-bg) !important;
-}
+#tua-panel .tua-roombar { background: var(--tua-roombar-bg) !important; }
+#tua-panel .tua-room-list { background: var(--tua-room-list-bg) !important; }
+#tua-panel .tua-room-item { background: var(--tua-room-item-bg) !important; }
+#tua-panel .tua-room-item.active { background: var(--tua-room-active-bg) !important; }
+#tua-panel .tua-in-panel-settings { background: var(--tua-settings-bg) !important; }
+#tua-panel .tua-messages { background: var(--tua-bg) !important; }
+#tua-panel .tua-input-row { background: var(--tua-inputbar-bg) !important; }
+#tua-panel #tua-input { background: var(--tua-input-bg) !important; }
 #tua-panel .tua-header-actions button,
 #tua-panel .tua-roombar button,
 #tua-panel .tua-msg-actions button,
 #tua-panel .tua-profile-row button,
 #tua-panel .tua-danger-light,
 #tua-panel .tua-mode-create-card,
-#tua-panel .tua-theme-buttons button {
-  background: var(--tua-button-bg) !important;
-}
+#tua-panel .tua-theme-buttons button { background: var(--tua-button-bg) !important; }
 #tua-panel .tua-header-actions button:hover,
 #tua-panel .tua-roombar button:hover,
 #tua-panel .tua-msg-actions button:hover,
@@ -1738,12 +1784,6 @@ body.tua-panel-resizing-body {
 #tua-panel .tua-danger-light:hover,
 #tua-panel .tua-mode-create-card:hover,
 #tua-panel .tua-theme-buttons button:hover,
-#tua-panel .tua-theme-buttons button.active {
-  background: var(--tua-button-hover) !important;
-}
-#tua-panel #tua-send {
-  background: var(--tua-send-bg) !important;
-}
-#tua-panel .tua-bubble {
-  color: var(--tua-bubble-text) !important;
-}
+#tua-panel .tua-theme-buttons button.active { background: var(--tua-button-hover) !important; }
+#tua-panel #tua-send { background: var(--tua-send-bg) !important; }
+#tua-panel .tua-bubble { color: var(--tua-bubble-text) !important; }
