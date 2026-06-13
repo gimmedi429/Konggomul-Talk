@@ -977,3 +977,138 @@ body.tua-panel-resizing-body {
   margin-top: 7px;
   font-size: 12px;
 }
+
+/* v4.0.4 theme system */
+#tua-panel[data-tua-theme="konggomul"] {
+  --tua-bg: #fbf4e7;
+  --tua-bg-2: #f4e5c9;
+  --tua-card: #fffaf0;
+  --tua-line: #dfcaa4;
+  --tua-text: #21170f;
+  --tua-muted: #7b6548;
+  --tua-user-bubble: #f1d08f;
+  --tua-char-bubble: #fff7de;
+  --tua-accent: #9f7a36;
+  --tua-accent-dark: #6e4f1f;
+  --tua-shadow: rgba(92, 66, 28, .22);
+  --tua-header-a: #f7dfaa;
+  --tua-header-b: #f3d39b;
+  --tua-header-c: #ead0a2;
+  --tua-panel-bg-end: #f8ecd4;
+  --tua-collapsed-bg: rgba(255, 247, 221, .14);
+  --tua-collapsed-bg-hover: rgba(255, 247, 221, .24);
+}
+#tua-panel[data-tua-theme="chocoStrawberry"] {
+  --tua-bg: #fff0f4;
+  --tua-bg-2: #f2d1d6;
+  --tua-card: #fff8f8;
+  --tua-line: #d9a9a1;
+  --tua-text: #2b1713;
+  --tua-muted: #835951;
+  --tua-user-bubble: #ffd3df;
+  --tua-char-bubble: #fff6ec;
+  --tua-accent: #9a5544;
+  --tua-accent-dark: #65352b;
+  --tua-shadow: rgba(89, 42, 33, .18);
+  --tua-header-a: #ffd0dc;
+  --tua-header-b: #efb3bd;
+  --tua-header-c: #d5aa8b;
+  --tua-panel-bg-end: #ffe7ed;
+  --tua-collapsed-bg: rgba(255, 208, 220, .16);
+  --tua-collapsed-bg-hover: rgba(255, 208, 220, .28);
+}
+#tua-panel[data-tua-theme="melonSoda"] {
+  --tua-bg: #efffe9;
+  --tua-bg-2: #d8f5d0;
+  --tua-card: #fbfff3;
+  --tua-line: #b2d7a6;
+  --tua-text: #132416;
+  --tua-muted: #527352;
+  --tua-user-bubble: #cdf4bb;
+  --tua-char-bubble: #f4ffe6;
+  --tua-accent: #6c9f50;
+  --tua-accent-dark: #3f6930;
+  --tua-shadow: rgba(55, 91, 45, .17);
+  --tua-header-a: #dff7bd;
+  --tua-header-b: #c7f0a3;
+  --tua-header-c: #b9e6d7;
+  --tua-panel-bg-end: #e8fbdf;
+  --tua-collapsed-bg: rgba(210, 246, 184, .16);
+  --tua-collapsed-bg-hover: rgba(210, 246, 184, .30);
+}
+#tua-panel[data-tua-theme="blackWhite"] {
+  --tua-bg: #f5f5f5;
+  --tua-bg-2: #e1e1e1;
+  --tua-card: #ffffff;
+  --tua-line: #bdbdbd;
+  --tua-text: #111111;
+  --tua-muted: #666666;
+  --tua-user-bubble: #e7e7e7;
+  --tua-char-bubble: #ffffff;
+  --tua-accent: #555555;
+  --tua-accent-dark: #222222;
+  --tua-shadow: rgba(0, 0, 0, .16);
+  --tua-header-a: #f6f6f6;
+  --tua-header-b: #dddddd;
+  --tua-header-c: #c9c9c9;
+  --tua-panel-bg-end: #eeeeee;
+  --tua-collapsed-bg: rgba(245, 245, 245, .18);
+  --tua-collapsed-bg-hover: rgba(245, 245, 245, .32);
+}
+
+#tua-panel .tua-window {
+  background: linear-gradient(180deg, var(--tua-bg), var(--tua-panel-bg-end)) !important;
+}
+#tua-panel .tua-header {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255,255,255,.70) 0 11%, transparent 12%),
+    linear-gradient(135deg, var(--tua-header-a), var(--tua-header-b) 48%, var(--tua-header-c)) !important;
+}
+#tua-panel .tua-messages {
+  background: var(--tua-bg) !important;
+}
+#tua-collapsed-button {
+  background: var(--tua-collapsed-bg) !important;
+  background-color: var(--tua-collapsed-bg) !important;
+}
+#tua-collapsed-button:hover {
+  background: var(--tua-collapsed-bg-hover) !important;
+  background-color: var(--tua-collapsed-bg-hover) !important;
+}
+
+.tua-theme-picker {
+  margin: 8px 0 10px;
+  padding: 8px;
+  border: 1px solid rgba(159, 122, 54, .20);
+  border-radius: 10px;
+  background: rgba(255, 250, 240, .44);
+}
+.tua-theme-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tua-muted);
+  margin-bottom: 6px;
+}
+.tua-theme-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+.tua-theme-buttons button {
+  border: 1px solid rgba(159, 122, 54, .22);
+  border-radius: 8px;
+  padding: 5px 6px;
+  background: rgba(255, 250, 240, .72);
+  color: var(--tua-text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tua-theme-buttons button:hover {
+  background: rgba(255, 244, 215, .78);
+}
+.tua-theme-buttons button.active {
+  border-color: var(--tua-accent);
+  background: var(--tua-user-bubble);
+  font-weight: 700;
+}

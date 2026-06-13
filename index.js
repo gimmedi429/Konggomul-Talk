@@ -1,5 +1,5 @@
 /*
- * 🐕콩고물 톡 v4.0.3
+ * 🐕콩고물 톡 v4.0.4
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -65,6 +65,48 @@ However, {char} must still help {user} move the RP toward {user}'s requested dir
 Do not continue the RP scene unless {user} explicitly asks for a draft or continuation. When {user} asks for OOC text, write usable OOC text. When {user} asks what is happening, explain the situation clearly. When {user} asks how to get a desired outcome, give concrete reply direction or sample lines.`
   }
 }
+
+
+const THEMES = {
+  konggomul: {
+    label: '콩고물',
+    titleIcon: '🐕',
+    sendIcon: '🐶',
+    menuIcon: '🐕',
+    introIcon: '🐕'
+  },
+  chocoStrawberry: {
+    label: '초코딸기',
+    titleIcon: '🍫',
+    sendIcon: '🍓',
+    menuIcon: '🍫',
+    introIcon: '🍓'
+  },
+  melonSoda: {
+    label: '메론소다',
+    titleIcon: '🍈',
+    sendIcon: '🥤',
+    menuIcon: '🍈',
+    introIcon: '🥤'
+  },
+  blackWhite: {
+    label: '블랙화이트',
+    titleIcon: '📑',
+    sendIcon: '⌨️',
+    menuIcon: '📑',
+    introIcon: '📑'
+  }
+};
+
+function getThemeKey() {
+  const key = getSettings().theme || 'konggomul';
+  return THEMES[key] ? key : 'konggomul';
+}
+
+function getTheme() {
+  return THEMES[getThemeKey()] || THEMES.konggomul;
+}
+
 const PANEL_DEFAULT_WIDTH = 300;
 const PANEL_DEFAULT_HEIGHT = 515;
 const PANEL_MIN_WIDTH = 300;
@@ -77,6 +119,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   enabled: true,
   openOnStart: false,
   fontSize: 14,
+  theme: 'konggomul',
   maxTokens: 1000,
   recentMessages: 10,
   panelWidth: PANEL_DEFAULT_WIDTH,
@@ -714,7 +757,7 @@ function ensurePanel() {
     <div class="tua-window">
       <div class="tua-header">
         <div class="tua-titlebox">
-          <div class="tua-title">🐕 콩톡</div>
+          <div class="tua-title"><span id="tua-title-icon">🐕</span> 콩톡</div>
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
@@ -732,7 +775,16 @@ function ensurePanel() {
       <div id="tua-room-list" class="tua-room-list"></div>
       <div id="tua-mode-picker" class="tua-mode-picker"></div>
       <div id="tua-in-panel-settings" class="tua-in-panel-settings">
-        <div class="tua-settings-title">🐕콩고물 톡 설정</div>
+        <div class="tua-settings-title"><span id="tua-settings-icon">🐕</span>콩고물 톡 설정</div>
+        <div class="tua-theme-picker">
+          <div class="tua-theme-title">테마</div>
+          <div class="tua-theme-buttons">
+            <button type="button" data-theme="konggomul">콩고물</button>
+            <button type="button" data-theme="chocoStrawberry">초코딸기</button>
+            <button type="button" data-theme="melonSoda">메론소다</button>
+            <button type="button" data-theme="blackWhite">블랙화이트</button>
+          </div>
+        </div>
         <label>최대 응답 토큰 수
           <input id="tua-panel-tokens" type="number" min="100" max="8000" step="50">
         </label>
@@ -777,6 +829,18 @@ function ensurePanel() {
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
   $('#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-coworker-note').on('change input', readPanelSettingsUI);
+  $('.tua-theme-buttons button').on('click', function(e) {
+    e.preventDefault();
+    const key = $(this).data('theme');
+    if (!THEMES[key]) return;
+    const st = getSettings();
+    st.theme = key;
+    saveSettings();
+    hydratePanelSettingsUI();
+    applyVisualSettings();
+    ensureExtensionMenuEntry();
+    setStatus(`테마를 ${THEMES[key].label}(으)로 변경했습니다.`);
+  });
   $('#tua-export-rooms').on('click', exportCurrentCharacterRooms);
   $('#tua-import-rooms').on('click', () => $('#tua-import-file').trigger('click'));
   $('#tua-import-file').on('change', importCurrentCharacterRooms);
@@ -1178,7 +1242,7 @@ Write only {char}'s first text message. Do not output system notes, labels, spea
 async function generateRoomIntroReply(modeKey) {
   const settings = getSettings();
   const instruction = buildRoomIntroInstruction(modeKey);
-  if (!instruction) return '🐕';
+  if (!instruction) return getTheme().introIcon || '🐕';
   const systemPrompt = await buildSystemPrompt('', modeKey, instruction);
   const prompt = [{ role: 'user', content: '새 콩고물 톡 방을 시작해줘.' }];
   return await useSelectedProfileIfNeeded(async () => {
@@ -1203,7 +1267,7 @@ async function createRoomWithModeIntro(modeKey) {
   setPanelVisible(true);
   $('#tua-input').trigger('focus');
   if (mode === 'kongtalk') {
-    room.messages.push({ id: 'msg_intro_' + Date.now(), role: 'assistant', content: '🐕', at: Date.now() });
+    room.messages.push({ id: 'msg_intro_' + Date.now(), role: 'assistant', content: getTheme().introIcon || '🐕', at: Date.now() });
     await saveRooms();
     renderAll();
     setStatus(`새 ${MODES[mode].label} 방을 시작했습니다.`);
@@ -1384,7 +1448,9 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-font').val(s.fontSize);
   $('#tua-panel-voice-note').val(getVoiceNote());
   $('#tua-panel-coworker-note').val(s.coworkerWorkNote || '');
+  $('.tua-theme-buttons button').removeClass('active').filter(`[data-theme="${getThemeKey()}"]`).addClass('active');
 }
+
 
 function renderProfileOptions() {
   const s = getSettings();
@@ -1453,12 +1519,28 @@ function applyManualPanelSizeFromUI() {
   applyPanelSize($('#tua-panel-width').val(), $('#tua-panel-height').val(), 'manual');
 }
 
+
+function applyThemeUI() {
+  const themeKey = getThemeKey();
+  const theme = getTheme();
+  if (panelEl) {
+    panelEl.setAttribute('data-tua-theme', themeKey);
+    $('#tua-title-icon').text(theme.titleIcon);
+    $('#tua-settings-icon').text(theme.titleIcon);
+    $('#tua-send').text(theme.sendIcon).attr('title', '전송').attr('aria-label', '전송');
+    $('#tua-collapsed-button .tua-collapsed-emoji').text('🐕');
+  }
+  const entryIcon = document.querySelector('#tua-extension-menu-entry .tua-extension-menu-icon');
+  if (entryIcon) entryIcon.textContent = theme.menuIcon;
+}
+
 function applyVisualSettings() {
   const s = getSettings();
   document.documentElement.style.setProperty('--tua-font-size', `${s.fontSize}px`);
   document.documentElement.style.setProperty('--tua-panel-width', `${s.panelWidth}px`);
   document.documentElement.style.setProperty('--tua-panel-height', `${s.panelHeight}px`);
   if (panelEl) panelEl.classList.toggle('tua-collapsed', !!s.collapsed);
+  applyThemeUI();
   applyPanelPosition();
 }
 
@@ -1691,7 +1773,7 @@ function ensureExtensionMenuEntry() {
     entry.className = 'tua-extension-menu-entry';
     entry.setAttribute('role', 'button');
     entry.setAttribute('tabindex', '0');
-    entry.innerHTML = '<span class="tua-extension-menu-icon">🐕</span><span class="tua-extension-menu-text">콩고물 톡</span>';
+    entry.innerHTML = `<span class="tua-extension-menu-icon">${getTheme().menuIcon}</span><span class="tua-extension-menu-text">콩고물 톡</span>`;
     entry.addEventListener('click', () => {
       const st = getSettings();
       if (!st.enabled) {
