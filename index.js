@@ -1,5 +1,5 @@
 /*
- * 🐕콩고물 톡 v4.0.2
+ * 🐕콩고물 톡 v4.0.3
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -130,6 +130,11 @@ function getCurrentCharacter() {
 
 function getCharName(character = getCurrentCharacter()) {
   return character?.name || character?.data?.name || 'No Character';
+}
+
+function getUserName() {
+  const context = ctx();
+  return context.name1 || context.power_user?.name || '유저';
 }
 
 function getCharKey(character = getCurrentCharacter()) {
@@ -720,26 +725,14 @@ function ensurePanel() {
       </div>
       <div class="tua-roombar">
         <button type="button" id="tua-active-room-title" class="tua-active-room-title" title="대화방 목록 열기"></button>
-        <button type="button" id="tua-pin-room" title="대화방 고정/해제">📌</button>
         <button type="button" id="tua-new-room" title="새 대화방">＋</button>
+        <button type="button" id="tua-pin-room" title="대화방 고정/해제">📌</button>
         <button type="button" id="tua-delete-room" title="대화방 삭제">🗑️</button>
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
       <div id="tua-mode-picker" class="tua-mode-picker"></div>
       <div id="tua-in-panel-settings" class="tua-in-panel-settings">
         <div class="tua-settings-title">🐕콩고물 톡 설정</div>
-        <label>AI 연결 프로필
-          <div class="tua-profile-row">
-            <select id="tua-panel-profile-mode">
-              <option value="current">현재 선택된 ST 연결</option>
-              <option value="profile">저장된 Connection Profile 선택</option>
-            </select>
-            <button type="button" id="tua-refresh-profiles" title="프로필 목록 새로고침">↻</button>
-          </div>
-        </label>
-        <label id="tua-profile-select-wrap">프로필 선택
-          <select id="tua-panel-profile"></select>
-        </label>
         <label>최대 응답 토큰 수
           <input id="tua-panel-tokens" type="number" min="100" max="8000" step="50">
         </label>
@@ -754,12 +747,6 @@ function ensurePanel() {
         </label>
         <label>직장 동료 업무 메모
           <textarea id="tua-panel-coworker-note" rows="5" placeholder="예: 유저는 유치원 선생님이다. 주 업무는 알림장 작성, 주간 놀이계획안 정리, 학부모 안내문 작성, 행사 준비, 교실 환경 정리, 아이들 관찰 기록, 출결 확인이다."></textarea>
-        </label>
-        <label>창 너비(px)
-          <input id="tua-panel-width" type="number" min="280" max="1000" step="10">
-        </label>
-        <label>창 높이(px)
-          <input id="tua-panel-height" type="number" min="320" max="1000" step="10">
         </label>
         <button type="button" id="tua-export-rooms" class="tua-danger-light">이 캐릭터 대화 내보내기</button>
         <button type="button" id="tua-import-rooms" class="tua-danger-light">이 캐릭터 대화 가져오기</button>
@@ -789,10 +776,7 @@ function ensurePanel() {
   $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
-  $('#tua-panel-profile-mode,#tua-panel-profile,#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-coworker-note').on('change input', readPanelSettingsUI);
-  $('#tua-panel-width,#tua-panel-height').on('change blur', applyManualPanelSizeFromUI);
-  $('#tua-panel-width,#tua-panel-height').on('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyManualPanelSizeFromUI(); e.currentTarget.blur(); } });
-  $('#tua-refresh-profiles').on('click', refreshProfiles);
+  $('#tua-panel-tokens,#tua-panel-recent,#tua-panel-font,#tua-panel-voice-note,#tua-panel-coworker-note').on('change input', readPanelSettingsUI);
   $('#tua-export-rooms').on('click', exportCurrentCharacterRooms);
   $('#tua-import-rooms').on('click', () => $('#tua-import-file').trigger('click'));
   $('#tua-import-file').on('change', importCurrentCharacterRooms);
@@ -1256,23 +1240,41 @@ function getRecentKongtalkLines(limit = 10) {
 async function generateKongtalkSummaryForMain() {
   const lines = getRecentKongtalkLines(10);
   if (!lines.length) throw new Error('요약할 콩고물 톡 메시지가 없습니다.');
+  const userName = getUserName();
+  const charName = getCharName();
   const systemPrompt = `You summarize a separate messenger conversation so it can be inserted into the main RP as context.
-Write in Korean.
-Do not continue the RP scene.
-Do not copy every line. Summarize the recent messenger exchange in 3-7 concise sentences.
-The result must say that this happened through a separate text conversation between {{user}} and {char} outside the currently progressing scene.
-Start with: OOC: 진행 중인 RP 밖에서 {{user}}와 {char}는 콩고물 톡으로 다음 내용을 주고받았다:
-Include important emotional context, decisions, requests, promises, or relationship beats if present.
-Do not mention prompts, extensions, AI, models, or systems.`.replaceAll('{char}', getCharName());
+Write mostly in Korean, but the first line must begin with the English label "OOC:".
+Do not continue the RP scene yourself.
+Do not write a vague one-paragraph summary. Make it detailed enough that the main RP can continue with this text conversation reflected.
+Use the exact names below and do not invent or merge names:
+- User name: ${userName}
+- Character name: ${charName}
+
+Required output format:
+OOC: ${userName} and ${charName} exchanged the following text messages outside the ongoing RP. Reflect this text conversation and continue the RP.
+
+유저와 캐릭터는 아래와 같은 문자를 주고받았다.
+- [Write 6-12 detailed bullet points in Korean.]
+- [Include what the user said, what the character answered, emotional shifts, decisions, refusals, requests, promises, boundaries, and relationship beats when present.]
+- [Keep important nuance. Do not compress major emotional turns into one sentence.]
+
+이 문자 내용을 반영해 RP를 이어가세요.
+
+Rules:
+- Do not mention prompts, extensions, AI, models, or systems.
+- Do not add new facts that were not in the messages.
+- Do not copy every line verbatim, but preserve enough detail for continuity.
+- Do not use malformed combined names. Use only ${userName} and ${charName}.`;
   const prompt = [{ role: 'user', content: lines.join('\n') }];
   const settings = getSettings();
   return await useSelectedProfileIfNeeded(async () => {
+    const max = Math.min(settings.maxTokens || 1000, 1400);
     if (typeof ctx().generateRaw === 'function') {
-      return await ctx().generateRaw({ systemPrompt, prompt, maxTokens: Math.min(settings.maxTokens || 1000, 800), max_tokens: Math.min(settings.maxTokens || 1000, 800) });
+      return await ctx().generateRaw({ systemPrompt, prompt, maxTokens: max, max_tokens: max });
     }
     if (typeof ctx().generateQuietPrompt === 'function') {
       const merged = `${systemPrompt}\n\nMESSAGES TO SUMMARIZE:\n${lines.join('\n')}\n\nSummary now.`;
-      return await ctx().generateQuietPrompt({ quietPrompt: merged, maxTokens: Math.min(settings.maxTokens || 1000, 800), max_tokens: Math.min(settings.maxTokens || 1000, 800) });
+      return await ctx().generateQuietPrompt({ quietPrompt: merged, maxTokens: max, max_tokens: max });
     }
     throw new Error('SillyTavern generation function not found.');
   });
@@ -1330,20 +1332,46 @@ function renderSettings() {
       </div>
       <div class="inline-drawer-content">
         <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화</label>
-        <div class="tua-mini-note">체크하면 🐕콩고물 톡이 활성화됩니다.</div>
+        <div class="tua-global-profile-box">
+          <div class="tua-global-profile-title">AI 연결 프로필</div>
+          <div class="tua-profile-row">
+            <select id="tua-setting-profile-mode">
+              <option value="current">현재 선택된 ST 연결</option>
+              <option value="profile">저장된 Connection Profile 선택</option>
+            </select>
+            <button type="button" id="tua-setting-refresh-profiles" title="프로필 목록 새로고침">↻</button>
+          </div>
+          <label id="tua-setting-profile-select-wrap">프로필 선택
+            <select id="tua-setting-profile"></select>
+          </label>
+          <div class="tua-mini-note">저장된 프로필을 선택하면 콩고물 톡 생성 때만 잠시 전환하고, 생성 후 원래 ST 연결로 복구합니다.</div>
+        </div>
       </div>
     </div>
   </div>`;
   $('#extensions_settings2').append(html);
   hydrateGlobalSettingsUI();
-  $('#tua-setting-enabled').on('change', readGlobalSettingsUI);
+  $('#tua-setting-enabled,#tua-setting-profile-mode,#tua-setting-profile').on('change input', readGlobalSettingsUI);
+  $('#tua-setting-refresh-profiles').on('click', refreshProfiles);
 }
 
-function hydrateGlobalSettingsUI() { $('#tua-setting-enabled').prop('checked', !!getSettings().enabled); }
+function hydrateGlobalSettingsUI() {
+  const s = getSettings();
+  $('#tua-setting-enabled').prop('checked', !!s.enabled);
+  $('#tua-setting-profile-mode').val(s.profileMode || 'current');
+  renderProfileOptions();
+  $('#tua-setting-profile').val(s.selectedProfile || '');
+  $('#tua-setting-profile-select-wrap').toggle((s.profileMode || 'current') === 'profile');
+}
 
 function readGlobalSettingsUI() {
   const s = getSettings();
   s.enabled = $('#tua-setting-enabled').prop('checked');
+  const profileModeEl = $('#tua-setting-profile-mode');
+  if (profileModeEl.length) s.profileMode = profileModeEl.val() || 'current';
+  const profileEl = $('#tua-setting-profile');
+  if (profileEl.length) s.selectedProfile = profileEl.val() || '';
+  $('#tua-setting-profile-select-wrap').toggle((s.profileMode || 'current') === 'profile');
   if (!s.enabled) setPanelVisible(false);
   saveSettings();
   ensureLauncher();
@@ -1351,38 +1379,32 @@ function readGlobalSettingsUI() {
 
 function hydratePanelSettingsUI() {
   const s = getSettings();
-  $('#tua-panel-profile-mode').val(s.profileMode);
-  renderProfileOptions();
-  $('#tua-panel-profile').val(s.selectedProfile);
   $('#tua-panel-tokens').val(s.maxTokens);
   $('#tua-panel-recent').val(s.recentMessages);
   $('#tua-panel-font').val(s.fontSize);
   $('#tua-panel-voice-note').val(getVoiceNote());
   $('#tua-panel-coworker-note').val(s.coworkerWorkNote || '');
-  if (!isPanelSizeInputFocused()) {
-    $('#tua-panel-width').val(s.panelWidth);
-    $('#tua-panel-height').val(s.panelHeight);
-  }
-  $('#tua-profile-select-wrap').toggle(s.profileMode === 'profile');
 }
 
 function renderProfileOptions() {
   const s = getSettings();
-  const sel = $('#tua-panel-profile');
-  if (!sel.length) return;
-  sel.empty();
-  if (!s.cachedProfiles?.length) {
-    sel.append(`<option value="">프로필 목록 새로고침 필요</option>`);
-  } else {
-    for (const p of s.cachedProfiles) sel.append(`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`);
-  }
-  if (s.selectedProfile) sel.val(s.selectedProfile);
+  const selects = $('#tua-setting-profile, #tua-panel-profile');
+  if (!selects.length) return;
+  selects.each(function () {
+    const sel = $(this);
+    sel.empty();
+    if (!s.cachedProfiles?.length) {
+      sel.append(`<option value="">프로필 목록 새로고침 필요</option>`);
+    } else {
+      for (const p of s.cachedProfiles) sel.append(`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`);
+    }
+    if (s.selectedProfile) sel.val(s.selectedProfile);
+  });
+  $('#tua-setting-profile-select-wrap, #tua-profile-select-wrap').toggle((s.profileMode || 'current') === 'profile');
 }
 
 function readPanelSettingsUI() {
   const s = getSettings();
-  s.profileMode = $('#tua-panel-profile-mode').val();
-  s.selectedProfile = $('#tua-panel-profile').val() || '';
   const maxTokensRaw = Number($('#tua-panel-tokens').val());
   s.maxTokens = Number.isFinite(maxTokensRaw) ? Math.max(100, Math.min(8000, Math.floor(maxTokensRaw))) : DEFAULT_SETTINGS.maxTokens;
   const recentRaw = Number($('#tua-panel-recent').val());
@@ -1394,7 +1416,6 @@ function readPanelSettingsUI() {
   saveSettings();
   applyVisualSettings();
   renderAll();
-  $('#tua-profile-select-wrap').toggle(s.profileMode === 'profile');
 }
 
 function isPanelSizeInputFocused() {

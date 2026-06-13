@@ -883,3 +883,97 @@ body.tua-panel-resizing-body {
   opacity: 1 !important;
   filter: none !important;
 }
+
+/* v4.0.3 UI polish */
+#tua-collapsed-button {
+  background: rgba(255, 247, 221, .14) !important;
+  background-color: rgba(255, 247, 221, .14) !important;
+  border-color: rgba(110, 79, 31, .08) !important;
+  box-shadow: 0 3px 10px rgba(92, 66, 28, .07), 0 1px 0 rgba(255,255,255,.18) inset !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+#tua-collapsed-button:hover {
+  background: rgba(255, 247, 221, .24) !important;
+  background-color: rgba(255, 247, 221, .24) !important;
+  border-color: rgba(110, 79, 31, .12) !important;
+}
+#tua-collapsed-button .tua-collapsed-emoji {
+  opacity: 1 !important;
+  color: #2a1c0d !important;
+  text-shadow: 0 1px 1px rgba(255,255,255,.55) !important;
+}
+#tua-export-rooms,
+#tua-import-rooms,
+#tua-reset-all-rooms {
+  font-size: calc(var(--tua-font-size) - 2px) !important;
+  font-weight: 500 !important;
+  padding: 5px 8px !important;
+  min-height: 27px !important;
+  line-height: 1.2 !important;
+  background: rgba(255, 250, 240, .58) !important;
+  color: #5c4524 !important;
+}
+#tua-export-rooms:hover,
+#tua-import-rooms:hover,
+#tua-reset-all-rooms:hover {
+  background: rgba(255, 244, 215, .78) !important;
+}
+.tua-mode-picker {
+  padding: 7px 8px !important;
+  gap: 6px !important;
+}
+.tua-mode-picker-title {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+.tua-mode-picker-buttons {
+  gap: 5px !important;
+}
+.tua-mode-picker-buttons button {
+  font-size: 12px !important;
+  padding: 6px 8px !important;
+  border-radius: 8px !important;
+}
+.tua-settings-mini .tua-global-profile-box {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(159, 122, 54, .22);
+}
+.tua-settings-mini .tua-global-profile-title {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.tua-settings-mini .tua-profile-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.tua-settings-mini .tua-profile-row select,
+.tua-settings-mini #tua-setting-profile-select-wrap select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(159, 122, 54, .34);
+  border-radius: 8px;
+  padding: 5px 7px;
+  background: #fffdf6;
+  color: var(--tua-text);
+  font-size: 12px;
+}
+.tua-settings-mini #tua-setting-refresh-profiles {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid rgba(110, 79, 31, .22);
+  background: rgba(255, 250, 240, .72);
+  color: var(--tua-text);
+  cursor: pointer;
+}
+.tua-settings-mini #tua-setting-profile-select-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 7px;
+  font-size: 12px;
+}
