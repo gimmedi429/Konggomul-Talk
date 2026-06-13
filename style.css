@@ -1622,3 +1622,128 @@ body.tua-panel-resizing-body {
 #tua-panel[data-tua-theme="chocoStrawberry"] .tua-header-actions button:hover {
   background: #ffe9ee !important;
 }
+
+
+/* v4.0.13 final palette override: no gradients */
+#tua-panel[data-tua-theme="konggomul"] {
+  --tua-bg: #fcf8f3;
+  --tua-bg-2: #f4ece3;
+  --tua-card: #fffdfa;
+  --tua-line: #dccdbd;
+  --tua-text: #3d2f26;
+  --tua-muted: #8c7767;
+  --tua-bubble-text: #2f241d;
+  --tua-user-bubble: #e5d2bd;
+  --tua-char-bubble: #fffaf5;
+  --tua-accent: #b89473;
+  --tua-accent-dark: #8c6849;
+  --tua-shadow: rgba(113, 86, 60, .14);
+  --tua-header-a: #dec5aa;
+  --tua-header-b: #dec5aa;
+  --tua-header-c: #dec5aa;
+  --tua-panel-bg-end: #fcf8f3;
+  --tua-roombar-bg: rgba(249, 241, 232, .96);
+  --tua-room-list-bg: rgba(244, 235, 225, .96);
+  --tua-room-item-bg: rgba(255, 251, 246, .98);
+  --tua-room-active-bg: #ead9c8;
+  --tua-settings-bg: rgba(253, 249, 244, .98);
+  --tua-inputbar-bg: rgba(249, 242, 233, .98);
+  --tua-input-bg: #fffdfa;
+  --tua-button-bg: rgba(255, 251, 246, .96);
+  --tua-button-hover: #f2e4d6;
+  --tua-send-bg: #d8b89b;
+  --tua-danger-bg: rgba(255, 251, 246, .92);
+  --tua-danger-color: #6a503d;
+  --tua-collapsed-bg: rgba(222, 197, 170, .16);
+  --tua-collapsed-bg-hover: rgba(222, 197, 170, .24);
+}
+
+#tua-panel[data-tua-theme="chocoStrawberry"] {
+  --tua-bg: #fff6f7;
+  --tua-bg-2: #fdecef;
+  --tua-card: #fffafb;
+  --tua-line: #ddb9bb;
+  --tua-text: #402d27;
+  --tua-muted: #8b6d66;
+  --tua-bubble-text: #34251f;
+  --tua-user-bubble: #f5c6d2;
+  --tua-char-bubble: #ead7ca;
+  --tua-accent: #ab7c63;
+  --tua-accent-dark: #7c5845;
+  --tua-shadow: rgba(112, 80, 68, .15);
+  --tua-header-a: #b78469;
+  --tua-header-b: #b78469;
+  --tua-header-c: #b78469;
+  --tua-panel-bg-end: #fff6f7;
+  --tua-roombar-bg: rgba(251, 229, 234, .98);
+  --tua-room-list-bg: rgba(248, 219, 225, .98);
+  --tua-room-item-bg: rgba(255, 247, 248, .98);
+  --tua-room-active-bg: #e9c0b0;
+  --tua-settings-bg: rgba(255, 246, 247, .98);
+  --tua-inputbar-bg: rgba(252, 233, 237, .98);
+  --tua-input-bg: #fffafb;
+  --tua-button-bg: rgba(255, 247, 248, .96);
+  --tua-button-hover: #f1d0c4;
+  --tua-send-bg: #c79276;
+  --tua-danger-bg: rgba(255, 247, 248, .92);
+  --tua-danger-color: #6f5142;
+  --tua-collapsed-bg: rgba(199, 146, 118, .16);
+  --tua-collapsed-bg-hover: rgba(199, 146, 118, .24);
+}
+
+/* remove all theme gradients and use clear color blocks */
+#tua-panel .tua-window {
+  background: var(--tua-bg) !important;
+}
+#tua-panel .tua-header {
+  background: var(--tua-header-a) !important;
+}
+#tua-panel .tua-roombar {
+  background: var(--tua-roombar-bg) !important;
+}
+#tua-panel .tua-room-list {
+  background: var(--tua-room-list-bg) !important;
+}
+#tua-panel .tua-room-item {
+  background: var(--tua-room-item-bg) !important;
+}
+#tua-panel .tua-room-item.active {
+  background: var(--tua-room-active-bg) !important;
+}
+#tua-panel .tua-in-panel-settings {
+  background: var(--tua-settings-bg) !important;
+}
+#tua-panel .tua-messages {
+  background: var(--tua-bg) !important;
+}
+#tua-panel .tua-input-row {
+  background: var(--tua-inputbar-bg) !important;
+}
+#tua-panel #tua-input {
+  background: var(--tua-input-bg) !important;
+}
+#tua-panel .tua-header-actions button,
+#tua-panel .tua-roombar button,
+#tua-panel .tua-msg-actions button,
+#tua-panel .tua-profile-row button,
+#tua-panel .tua-danger-light,
+#tua-panel .tua-mode-create-card,
+#tua-panel .tua-theme-buttons button {
+  background: var(--tua-button-bg) !important;
+}
+#tua-panel .tua-header-actions button:hover,
+#tua-panel .tua-roombar button:hover,
+#tua-panel .tua-msg-actions button:hover,
+#tua-panel .tua-profile-row button:hover,
+#tua-panel .tua-danger-light:hover,
+#tua-panel .tua-mode-create-card:hover,
+#tua-panel .tua-theme-buttons button:hover,
+#tua-panel .tua-theme-buttons button.active {
+  background: var(--tua-button-hover) !important;
+}
+#tua-panel #tua-send {
+  background: var(--tua-send-bg) !important;
+}
+#tua-panel .tua-bubble {
+  color: var(--tua-bubble-text) !important;
+}
