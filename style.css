@@ -1372,3 +1372,19 @@ body.tua-panel-resizing-body {
   opacity: 1 !important;
   filter: none !important;
 }
+
+
+/* v4.0.7 profile UI + softer mode picker */
+#tua-panel .tua-mode-picker-title,
+#tua-panel .tua-mode-picker-buttons button {
+  font-weight: 300 !important;
+}
+#tua-panel .tua-mode-picker-buttons button {
+  font-size: 12px !important;
+}
+.tua-settings-mini .tua-global-profile-title {
+  font-weight: 500 !important;
+}
+.tua-settings-mini .tua-profile-row select {
+  font-weight: 400 !important;
+}

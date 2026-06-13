@@ -1,5 +1,5 @@
 /*
- * 🐕콩고물 톡 v4.0.6
+ * 🐕콩고물 톡 v4.0.7
  * Separate in-character companion messenger for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
@@ -131,7 +131,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   cachedProfiles: [],
   sendToMainEnabled: true,
   collapsed: false,
-  coworkerWorkNote: ''
+  coworkerWorkNote: '',
+  profileSettingsV407Migrated: false
 });
 
 let activeRoomId = null;
@@ -156,6 +157,10 @@ function getSettings() {
   if (!settings[MODULE_NAME]) settings[MODULE_NAME] = cloneDefaults();
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
     if (!Object.hasOwn(settings[MODULE_NAME], k)) settings[MODULE_NAME][k] = v;
+  }
+  if (!settings[MODULE_NAME].profileSettingsV407Migrated) {
+    if (settings[MODULE_NAME].profileMode !== 'profile') settings[MODULE_NAME].selectedProfile = '';
+    settings[MODULE_NAME].profileSettingsV407Migrated = true;
   }
   return settings[MODULE_NAME];
 }
@@ -552,12 +557,14 @@ Do not write {user}'s actions, thoughts, or dialogue.
 If {user}'s input is light casual chat, answer in 1-3 short message-like chunks. If {user} asks a clear question, requests analysis, asks for practical work help, or needs a useful answer, respond with enough detail to fully satisfy the request.
 
 Boundaries:
-Answer within the current message exchange. Do not create a next meeting, date plan, errand, delivery, visit, or future scene unless {user} directly asks for it.
+Answer within the current message exchange. Do not create a next meeting, date plan, errand, delivery, visit, phone call, voice call, video call, live call, or future scene unless {user} directly asks for it.
+This is a text-only messenger room. {char} must not end, pause, replace, or escape the text conversation by telling {user} to call, answer the phone, hear {char}'s voice, come over, wait, meet, move locations, or continue elsewhere.
+Do not write commands or demands such as "전화 받아", "목소리 듣고 싶어", "지금 통화해", "이리 와", "내가 갈게", "빨리 와", "기다려", "come here", "answer the phone", "call me", "pick up", "wait for me", or similar unless {user} explicitly asked for a call/visit/meeting plan.
 Do not promise future real-world actions unless {user} directly asks for them.
-Do not say {char} will buy, bring, prepare, send, wait, visit, search later, check later, handle something later, or do something for {user} later unless requested.
-Do not tell {user} to come over, hurry over, leave the house, go somewhere, meet {char}, wait for {char}, or move to a specific place unless {user} directly asks what to do or asks to meet.
-Do not end the reply by pushing {user} toward a future action ("come here", "hurry over", "go there", "wait for me", "I'll see you later", "I'll bring it tomorrow") unless that action was explicitly requested by {user}.
-If {char} wants to be affectionate or playful, keep it inside the current text conversation: react, tease, comment, reassure, or joke in {char}'s voice without turning it into a plan.
+Do not say {char} will buy, bring, prepare, send, wait, visit, search later, check later, handle something later, call, text later, or do something for {user} later unless requested.
+Do not tell {user} to come over, hurry over, leave the house, go somewhere, meet {char}, wait for {char}, answer a call, start a call, or move to a specific place unless {user} directly asks what to do or asks to meet/call.
+Do not end the reply by pushing {user} toward a future action ("come here", "hurry over", "go there", "wait for me", "I'll see you later", "I'll bring it tomorrow", "answer the phone", "call me") unless that action was explicitly requested by {user}.
+If {char} wants to be affectionate, urgent, possessive, jealous, playful, or worried, keep it inside the current text conversation: react, tease, comment, reassure, ask, or joke in {char}'s voice without turning it into a phone call, meeting, visit, or future plan.
 
 Mode instruction:
 ${mode.instruction}
@@ -692,19 +699,19 @@ async function getCurrentProfileName() {
 
 async function useSelectedProfileIfNeeded(callback) {
   const s = getSettings();
-  if (s.profileMode !== 'profile' || !s.selectedProfile) return await callback();
-
   const selected = String(s.selectedProfile || '').trim();
+  if (!selected) return await callback();
+
   const previous = await getCurrentProfileName();
 
   if (!previous) {
-    throw new Error('메인 API를 확인할 수 없어 콩고물 톡 전용 API를 사용할 수 없습니다.');
+    throw new Error('현재 연결 프로필을 확인할 수 없어 콩고물 톡 전용 API를 사용할 수 없습니다.');
   }
 
   if (previous === selected) return await callback();
 
   try {
-    setStatus(`콩고물 톡 전용 API(${selected})로 생성 중...`);
+    setStatus(`콩고물 톡 전용 API로 생성 중...`);
     await runSlashCommand(profileCommand(selected));
     await wait(120);
     return await callback();
@@ -712,10 +719,10 @@ async function useSelectedProfileIfNeeded(callback) {
     try {
       await runSlashCommand(profileCommand(previous));
       await wait(120);
-      setStatus(`메인 API로 돌아왔습니다.`);
+      setStatus(`콩고물 톡 생성 완료`);
     } catch (e) {
       console.error('[Konggomul] profile restore failed', e);
-      setStatus(`API 전환 후 메인 API로 돌아오지 못했습니다. 연결 프로필을 확인해 주세요.`);
+      setStatus(`연결 프로필 복구 실패: SillyTavern의 현재 연결 프로필을 확인해 주세요.`);
     }
   }
 }
@@ -1094,7 +1101,7 @@ function exportCurrentCharacterRooms() {
   try {
     const payload = {
       app: 'Konggomul Talk',
-      version: '4.0.0',
+      version: '4.0.7',
       exportedAt: new Date().toISOString(),
       characterKey: getCharKey(),
       characterName: getCharName(),
@@ -1307,7 +1314,7 @@ async function generateKongtalkSummaryForMain() {
   const userName = getUserName();
   const charName = getCharName();
   const systemPrompt = `You summarize a separate messenger conversation so it can be inserted into the main RP as context.
-Write mostly in Korean, but the first line must begin with the English label "OOC:".
+Return the entire inserted note in English only. Do not use Korean.
 Do not continue the RP scene yourself.
 Do not write a vague one-paragraph summary. Make it detailed enough that the main RP can continue with this text conversation reflected.
 Use the exact names below and do not invent or merge names:
@@ -1317,14 +1324,17 @@ Use the exact names below and do not invent or merge names:
 Required output format:
 OOC: ${userName} and ${charName} exchanged the following text messages outside the ongoing RP. Reflect this text conversation and continue the RP.
 
-유저와 캐릭터는 아래와 같은 문자를 주고받았다.
-- [Write 6-12 detailed bullet points in Korean.]
+The user and the character exchanged the following text messages:
+- [Write 8-14 detailed bullet points in English.]
 - [Include what the user said, what the character answered, emotional shifts, decisions, refusals, requests, promises, boundaries, and relationship beats when present.]
-- [Keep important nuance. Do not compress major emotional turns into one sentence.]
+- [Preserve important nuance and continuity. Do not compress major emotional turns into one sentence.]
+- [When the exchange contains a declaration, conflict, emotional reversal, agreement, or boundary, state it clearly.]
 
-이 문자 내용을 반영해 RP를 이어가세요.
+Continue the RP while reflecting this text conversation.
 
 Rules:
+- English only. Do not output Korean.
+- Start with exactly the English label "OOC:".
 - Do not mention prompts, extensions, AI, models, or systems.
 - Do not add new facts that were not in the messages.
 - Do not copy every line verbatim, but preserve enough detail for continuity.
@@ -1397,44 +1407,34 @@ function renderSettings() {
       <div class="inline-drawer-content">
         <label class="checkbox_label"><input type="checkbox" id="tua-setting-enabled"> 확장 활성화</label>
         <div class="tua-global-profile-box">
-          <div class="tua-global-profile-title">AI 연결 프로필</div>
+          <div class="tua-global-profile-title">콩고물 톡 전용 API</div>
           <div class="tua-profile-row">
-            <select id="tua-setting-profile-mode">
-              <option value="current">메인 API</option>
-              <option value="profile">콩고물 톡 전용 API</option>
-            </select>
+            <select id="tua-setting-profile"></select>
             <button type="button" id="tua-setting-refresh-profiles" title="프로필 목록 새로고침">↻</button>
           </div>
-          <label id="tua-setting-profile-select-wrap">프로필 선택
-            <select id="tua-setting-profile"></select>
-          </label>
-                  </div>
+        </div>
       </div>
     </div>
   </div>`;
   $('#extensions_settings2').append(html);
   hydrateGlobalSettingsUI();
-  $('#tua-setting-enabled,#tua-setting-profile-mode,#tua-setting-profile').on('change input', readGlobalSettingsUI);
+  $('#tua-setting-enabled,#tua-setting-profile').on('change input', readGlobalSettingsUI);
   $('#tua-setting-refresh-profiles').on('click', refreshProfiles);
 }
 
 function hydrateGlobalSettingsUI() {
   const s = getSettings();
   $('#tua-setting-enabled').prop('checked', !!s.enabled);
-  $('#tua-setting-profile-mode').val(s.profileMode || 'current');
   renderProfileOptions();
   $('#tua-setting-profile').val(s.selectedProfile || '');
-  $('#tua-setting-profile-select-wrap').toggle((s.profileMode || 'current') === 'profile');
 }
 
 function readGlobalSettingsUI() {
   const s = getSettings();
   s.enabled = $('#tua-setting-enabled').prop('checked');
-  const profileModeEl = $('#tua-setting-profile-mode');
-  if (profileModeEl.length) s.profileMode = profileModeEl.val() || 'current';
   const profileEl = $('#tua-setting-profile');
   if (profileEl.length) s.selectedProfile = profileEl.val() || '';
-  $('#tua-setting-profile-select-wrap').toggle((s.profileMode || 'current') === 'profile');
+  s.profileMode = s.selectedProfile ? 'profile' : 'current';
   if (!s.enabled) setPanelVisible(false);
   saveSettings();
   ensureLauncher();
@@ -1458,14 +1458,14 @@ function renderProfileOptions() {
   selects.each(function () {
     const sel = $(this);
     sel.empty();
+    sel.append(`<option value="">메인 API 사용</option>`);
     if (!s.cachedProfiles?.length) {
-      sel.append(`<option value="">프로필 목록 새로고침 필요</option>`);
+      sel.append(`<option value="" disabled>프로필 목록 새로고침 필요</option>`);
     } else {
       for (const p of s.cachedProfiles) sel.append(`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`);
     }
-    if (s.selectedProfile) sel.val(s.selectedProfile);
+    sel.val(s.selectedProfile || '');
   });
-  $('#tua-setting-profile-select-wrap, #tua-profile-select-wrap').toggle((s.profileMode || 'current') === 'profile');
 }
 
 function readPanelSettingsUI() {
